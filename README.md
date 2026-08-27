@@ -4,7 +4,10 @@
 
 Built by **MR CYBER** (Harsh Saini) — cybersecurity builder, OSINT specialist, hardware+software combo.
 
----
+---![Version](https://img.shields.io/badge/version-1.0-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Python](https://img.shields.io/badge/python-3.6%2B-blue)
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 ## 🧠 What is IOT HUNTER?
 

@@ -9,16 +9,6 @@ Built by **MR CYBER** (Harsh Saini) — cybersecurity builder, OSINT specialist,
 ![Python](https://img.shields.io/badge/python-3.6%2B-blue)
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
-# 🔐 MR LOT HUNTER – IoT Security Auditing Toolkit
-
-**Version:** 2.0  
-**Author:** Harsh Saini (MR CYBER)  
-**License:** MIT (Educational/Defensive Use Only)
-
-> *"Complex ko simple. Simple ko powerful."*
-
----
-
 ## 📌 Overview
 
 **MR LOT HUNTER** is a lightweight but powerful IoT security auditing tool built for **network discovery, credential testing, firmware analysis, and anomaly detection**.  

@@ -123,9 +123,10 @@ Please ensure your contributions align with the **defensive & educational** natu
 
 ## 📬 Contact
 
-**Harsh Saini (MR CYBER)**  
-- GitHub: [@mrcyberharsh](https://github.com/mrcyberharsh)  
-
+**Harsh Saini (MR CYBER)** 
+Manager: [manager.prachi@zohomail.in]
+GitHub: [@mrcyberharsh](https://github.com/mrcyberharsh)  
+- 
 ## ⭐ Star the Project
 
 If you find this tool useful, please **⭐ star the repo** – it helps others discover it and motivates me to keep building. 🚀

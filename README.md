@@ -124,10 +124,7 @@ Please ensure your contributions align with the **defensive & educational** natu
 ## 📬 Contact
 
 **Harsh Saini (MR CYBER)**  
-- GitHub: [@yourusername](https://github.com/yourusername)  
-- Book: *"The Unseen Human Firewall"* (Coming Soon)
-
----
+- GitHub: [@mrcyberharsh](https://github.com/mrcyberharsh)  
 
 ## ⭐ Star the Project
 

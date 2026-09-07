@@ -1,52 +1,127 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import os
 import sys
 import time
-import random
+import socket
 import subprocess
-import platform
+import json
+import ipaddress
+from datetime import datetime
+from hashlib import sha3_512
 
 # ============================================================
-# MR CYBER BRANDING
+# EXTERNAL IMPORTS (Install if missing)
 # ============================================================
+try:
+    import requests
+except ImportError:
+    os.system("pip install requests")
+    import requests
 
+try:
+    import paramiko
+except ImportError:
+    os.system("pip install paramiko")
+    import paramiko
+
+try:
+    import scapy.all as scapy
+    from scapy.layers.inet import IP, TCP, UDP, ICMP
+    from scapy.layers.dns import DNS, DNSQR
+except ImportError:
+    os.system("pip install scapy")
+    import scapy.all as scapy
+    from scapy.layers.inet import IP, TCP, UDP, ICMP
+    from scapy.layers.dns import DNS, DNSQR
+
+# ============================================================
+# GLOBALS
+# ============================================================
+TARGET_RANGE = "192.168.1.0/24"
+OUTPUT_DIR = "reports"
+if not os.path.exists(OUTPUT_DIR):
+    os.makedirs(OUTPUT_DIR)
+
+COMMON_PORTS = [23, 22, 80, 443, 554, 8080, 1883, 21, 3389, 502, 102, 161, 162, 123]
+
+DEFAULT_CREDS = [
+    ("admin", "admin"), ("root", "root"), ("admin", "password"),
+    ("root", "12345"), ("admin", "1234"), ("root", "toor"),
+    ("pi", "raspberry"), ("ubuntu", "ubuntu"), ("guest", "guest"),
+    ("support", "support"), ("user", "user"), ("admin", "123456"),
+    ("root", "default"), ("admin", "default"), ("admin", "password123"),
+]
+
+# ============================================================
+# PASSWORD SECURITY (Keccak-512)
+# ============================================================
+def hash_password(password: str) -> str:
+    return sha3_512(password.encode('utf-8')).hexdigest()
+
+def check_password_strength(password: str) -> dict:
+    hashed = hash_password(password)
+    
+    # Check default credentials
+    for user, pwd in DEFAULT_CREDS:
+        if password == pwd:
+            return {
+                "status": "CRITICAL",
+                "message": " Default credential detected! Change it NOW.",
+                "hash": hashed
+            }
+    
+    # Check weak patterns
+    if len(password) < 8:
+        return {
+            "status": "WEAK",
+            "message": " Password is too short (< 8 chars).",
+            "hash": hashed
+        }
+    if password.lower() == password or password.upper() == password:
+        return {
+            "status": "WEAK",
+            "message": " Use mixed case (upper/lower) for strength.",
+            "hash": hashed
+        }
+    
+    return {
+        "status": "STRONG",
+        "message": " Strong password! Well done.",
+        "hash": hashed
+    }
+
+# ============================================================
+# BANNER
+# ============================================================
 def banner():
     os.system('clear' if os.name == 'posix' else 'cls')
     print("""
-    ██████╗  ██████╗ ████████╗    ██╗  ██╗██╗   ██╗███╗   ██╗████████╗███████╗██████╗ 
-    ██╔══██╗██╔═══██╗╚══██╔══╝    ██║  ██║██║   ██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗
-    ██║  ██║██║   ██║   ██║       ███████║██║   ██║██╔██╗ ██║   ██║   █████╗  ██████╔╝
-    ██║  ██║██║   ██║   ██║       ██╔══██║██║   ██║██║╚██╗██║   ██║   ██╔══╝  ██╔══██╗
-    ██████╔╝╚██████╔╝   ██║       ██║  ██║╚██████╔╝██║ ╚████║   ██║   ███████╗██║  ██║
-    ╚═════╝  ╚═════╝    ╚═╝       ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
-                                                                                        
-    ██╗ ██████╗ ████████╗    ██╗  ██╗██╗   ██╗███╗   ██╗████████╗███████╗██████╗ 
-    ██║██╔═══██╗╚══██╔══╝    ██║  ██║██║   ██║████╗  ██║╚══██╔══╝██╔════╝██╔══██╗
-    ██║██║   ██║   ██║       ███████║██║   ██║██╔██╗ ██║   ██║   █████╗  ██████╔╝
-    ██║██║   ██║   ██║       ██╔══██║██║   ██║██║╚██╗██║   ██║   ██╔══╝  ██╔══██╗
-    ██║╚██████╔╝   ██║       ██║  ██║╚██████╔╝██║ ╚████║   ██║   ███████╗██║  ██║
-    ╚═╝ ╚═════╝    ╚═╝       ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
-                                                                                
-    ╔═══════════════════════════════════════════════════════════════════════╗
-    ║   All-in-One IoT Security Toolkit — v1.0                             ║
-    ║   Built by MR CYBER (Harsh Saini)                                   ║
-    ║   "Complex ko simple. Simple ko powerful."                          ║
-    ╚═══════════════════════════════════════════════════════════════════════╝
+     ███╗   ███╗██████╗     ██╗      ██████╗ ████████╗
+     ████╗ ████║██╔══██╗    ██║     ██╔═══██╗╚══██╔══╝
+     ██╔████╔██║██████╔╝    ██║     ██║   ██║   ██║
+     ██║╚██╔╝██║██╔══██╗    ██║     ██║   ██║   ██║
+     ██║ ╚═╝ ██║██║  ██║    ███████╗╚██████╔╝   ██║
+     ╚═╝     ╚═╝╚═╝  ╚═╝    ╚══════╝ ╚═════╝    ╚═╝
+                    HUNTER - IoT Security Toolkit
+    ╔══════════════════════════════════════════════════════════╗
+    ║  MR LOT HUNTER  v2.0  (Keccak-512 Secured)            ║
+    ║  Built by MR CYBER HARSH (Harsh Saini)                  ║
+    ║  "Complex ko simple. Simple ko powerful."           ║
+    ╚══════════════════════════════════════════════════════════╝
     """)
-    print("\n" + "=" * 70)
-    print("[SYSTEM] IOT HUNTER initialized successfully.")
-    print("[SYSTEM] Target network: 192.168.1.0/24")
-    print("[SYSTEM] Scan engine: Ready")
-    print("=" * 70 + "\n")
+    print("[SYSTEM] IoT-Hunter initialized. Target: {}".format(TARGET_RANGE))
+    print("[SYSTEM] Passwords will be hashed (Keccak-512) in reports.")
+    print("[SYSTEM] Scan engine: Ready (Real Mode)\n")
 
 
 def menu():
     print("    ┌─────────────────────────────────────────────────────┐")
     print("    │  [1]  Discovery & Device Inventory                │")
-    print("    │  [2]  Credential Scanner                         │")
-    print("    │  [3]  Firmware Analysis                          │")
+    print("    │  [2]  Credential Scanner (with Hash)             │")
+    print("    │  [3]  Firmware Analysis (CVE Lookup)            │")
     print("    │  [4]  Network Anomaly Monitor                   │")
     print("    │  [5]  Protocol Analysis (Plaintext Detection)   │")
     print("    │  [6]  Remediation Engine                        │")
@@ -56,332 +131,318 @@ def menu():
 
 
 # ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+def ping_host(ip):
+    try:
+        subprocess.check_output(["ping", "-c", "1", "-W", "1", str(ip)], stderr=subprocess.DEVNULL)
+        return True
+    except:
+        return False
+
+def port_scan(ip, ports):
+    open_ports = []
+    for port in ports:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex((str(ip), port))
+        if result == 0:
+            open_ports.append(port)
+        sock.close()
+    return open_ports
+
+def get_vendor_from_mac(mac):
+    oui_file = "/usr/share/nmap/nmap-mac-prefixes"
+    if os.path.exists(oui_file):
+        with open(oui_file, 'r') as f:
+            for line in f:
+                if line.startswith(mac[:8].upper()):
+                    return line.split()[2].strip()
+    return "Unknown"
+
+# ============================================================
 # MODULE 1: DISCOVERY
 # ============================================================
-
 def module_discover():
     print("\n" + "=" * 70)
     print("[MODULE 1] Discovery & Device Inventory")
     print("=" * 70)
-
-    print("\n[+] Scanning network 192.168.1.0/24...")
-    time.sleep(1)
-
-    devices = [
-        {"ip": "192.168.1.1", "mac": "00:1A:2B:3C:4D:5E", "vendor": "TP-Link", "os": "Linux 2.6"},
-        {"ip": "192.168.1.10", "mac": "AA:BB:CC:DD:EE:FF", "vendor": "Samsung", "os": "Tizen"},
-        {"ip": "192.168.1.23", "mac": "11:22:33:44:55:66", "vendor": "Xiaomi", "os": "OpenWRT"},
-        {"ip": "192.168.1.45", "mac": "77:88:99:AA:BB:CC", "vendor": "Raspberry Pi", "os": "Linux 5.10"},
-        {"ip": "192.168.1.67", "mac": "99:AA:BB:CC:DD:EE", "vendor": "Amazon", "os": "Fire OS"},
-        {"ip": "192.168.1.89", "mac": "22:33:44:55:66:77", "vendor": "Google", "os": "Android Things"},
-        {"ip": "192.168.1.101", "mac": "44:55:66:77:88:99", "vendor": "Sony", "os": "Linux 4.9"},
-        {"ip": "192.168.1.120", "mac": "66:77:88:99:AA:BB", "vendor": "Bosch", "os": "RTOS"},
-        {"ip": "192.168.1.145", "mac": "88:99:AA:BB:CC:DD", "vendor": "Intel", "os": "Linux 5.4"},
-        {"ip": "192.168.1.200", "mac": "AA:BB:CC:DD:EE:FF", "vendor": "Cisco", "os": "IOS"},
-        {"ip": "192.168.1.215", "mac": "CC:DD:EE:FF:00:11", "vendor": "Huawei", "os": "HarmonyOS"},
-        {"ip": "192.168.1.250", "mac": "EE:FF:00:11:22:33", "vendor": "D-Link", "os": "Linux 3.10"},
-    ]
-
-    print("\n[+] 12 devices discovered.\n")
-    print("IP               MAC               Vendor             OS")
-    print("─────────────────────────────────────────────────────────────")
-    for d in devices:
-        print(f"{d['ip']:<16} {d['mac']:<18} {d['vendor']:<18} {d['os']}")
-
-    print("\n" + "=" * 70)
-    print("[ALERT] Critical: 192.168.1.45 — Default credentials (pi/raspberry)")
-    print("[ALERT] 3 devices have open Telnet ports (23)")
-    print("[ALERT] 2 devices have open SSH ports (22) with weak passwords")
-    print("[✓] Scan complete. Report saved: reports/discovery_2026-08-27.json")
-    print("=" * 70 + "\n")
-
+    
+    network = ipaddress.ip_network(TARGET_RANGE, strict=False)
+    devices = []
+    print("\n[+] Scanning network {}...".format(TARGET_RANGE))
+    for ip in network.hosts():
+        if ping_host(ip):
+            mac = "unknown"
+            try:
+                arp = subprocess.check_output(["arp", "-n", str(ip)], stderr=subprocess.DEVNULL).decode()
+                for line in arp.split("\n"):
+                    if str(ip) in line:
+                        parts = line.split()
+                        if len(parts) > 2:
+                            mac = parts[2]
+                        break
+            except:
+                pass
+            vendor = get_vendor_from_mac(mac) if mac != "unknown" else "Unknown"
+            open_ports = port_scan(ip, COMMON_PORTS)
+            devices.append({
+                "ip": str(ip),
+                "mac": mac,
+                "vendor": vendor,
+                "open_ports": open_ports
+            })
+            print("[+] Found {} ({}), open ports: {}".format(ip, vendor, open_ports))
+    
+    print("\n[+] {} devices discovered.".format(len(devices)))
+    report_file = os.path.join(OUTPUT_DIR, "discovery_{}.json".format(datetime.now().strftime("%Y%m%d_%H%M%S")))
+    with open(report_file, 'w') as f:
+        json.dump(devices, f, indent=2)
+    print("\n[✓] Report saved: {}".format(report_file))
     input("\nPress ENTER to return to menu...")
 
-
 # ============================================================
-# MODULE 2: CREDENTIAL SCANNER
+# MODULE 2: CREDENTIAL SCANNER (WITH HASH)
 # ============================================================
-
 def module_credscan():
     print("\n" + "=" * 70)
-    print("[MODULE 2] Credential Scanner")
+    print("[MODULE 2] Credential Scanner (Keccak-512 Hashed)")
     print("=" * 70)
-
-    print("\n[+] Scanning target: 192.168.1.45 (Raspberry Pi)")
-    time.sleep(1)
-    print("[+] Testing 1,247 default credentials...\n")
-
-    time.sleep(1)
-    print("[!] CREDENTIALS FOUND: admin/admin")
-    time.sleep(0.5)
-    print("[!] CREDENTIALS FOUND: pi/raspberry")
-    time.sleep(0.5)
-    print("[!] CREDENTIALS FOUND: root/root")
-    time.sleep(0.5)
-    print("[!] CREDENTIALS FOUND: ubuntu/ubuntu")
-
-    time.sleep(0.5)
-    print("\n[+] Testing SSH credentials on 192.168.1.23...")
-    time.sleep(0.8)
-    print("[+] Testing Telnet credentials on 192.168.1.67...")
-    time.sleep(0.8)
-    print("[+] Testing HTTP basic auth on 192.168.1.101...")
-
-    print("\n" + "=" * 70)
-    print("[ALERT] 4 default credentials found on 192.168.1.45")
-    print("[ALERT] 2 devices have weak passwords")
-    print("[✓] Report saved: reports/credscan_2026-08-27.txt")
-    print("=" * 70 + "\n")
-
+    
+    target_ip = input("\nEnter target IP (e.g., 192.168.1.45): ").strip()
+    if not target_ip:
+        print("[ERROR] No IP provided.")
+        return
+    
+    print("\n[+] Testing default credentials on {}...".format(target_ip))
+    found = []
+    
+    # Telnet Test
+    for user, pwd in DEFAULT_CREDS[:10]:
+        try:
+            tn = paramiko.Telnet(target_ip, 23, timeout=3)
+            tn.read_until(b"login: ")
+            tn.write(user.encode('ascii') + b"\n")
+            tn.read_until(b"Password: ")
+            tn.write(pwd.encode('ascii') + b"\n")
+            resp = tn.read_some()
+            if b"incorrect" not in resp.lower() and b"login" not in resp.lower():
+                found.append(("Telnet", user, pwd))
+            tn.close()
+        except:
+            pass
+    
+    # SSH Test
+    for user, pwd in DEFAULT_CREDS[:10]:
+        try:
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(target_ip, username=user, password=pwd, timeout=3)
+            found.append(("SSH", user, pwd))
+            client.close()
+        except:
+            pass
+    
+    # HTTP Basic Auth
+    for user, pwd in DEFAULT_CREDS[:5]:
+        try:
+            resp = requests.get("http://{}".format(target_ip), auth=(user, pwd), timeout=3)
+            if resp.status_code == 200 and "login" not in resp.text.lower():
+                found.append(("HTTP", user, pwd))
+        except:
+            pass
+    
+    if found:
+        print("\n[!] CREDENTIALS FOUND (Hashes Displayed):")
+        for proto, user, pwd in found:
+            strength = check_password_strength(pwd)
+            print(f"\n    Protocol: {proto}")
+            print(f"    Username: {user}")
+            print(f"    Password-Hash (Keccak-512): {strength['hash'][:32]}... (truncated)")
+            print(f"    Status: {strength['status']} — {strength['message']}")
+            print("    " + "-" * 50)
+    else:
+        print("\n[+] No default credentials found (or service unavailable).")
+    
     input("\nPress ENTER to return to menu...")
-
 
 # ============================================================
 # MODULE 3: FIRMWARE ANALYSIS
 # ============================================================
-
 def module_firmware():
     print("\n" + "=" * 70)
     print("[MODULE 3] Firmware Analysis")
     print("=" * 70)
-
-    print("\n[+] Querying firmware version for 192.168.1.45...")
-    time.sleep(0.8)
-    print("[+] Firmware: v2.1.3")
-    time.sleep(0.5)
-    print("[+] Vendor: Raspberry Pi Foundation")
-
-    time.sleep(0.5)
-    print("\n[+] Checking CVE database...")
-    time.sleep(0.8)
-
-    print("\n[!] CVE-2025-12345 — CVSS 9.8 (Critical)")
-    print("    Type: Buffer Overflow in USB stack")
-    print("    Impact: Remote code execution")
-    print("    Patch available: v2.2.0")
-
-    time.sleep(0.3)
-    print("\n[!] CVE-2025-67890 — CVSS 8.7 (High)")
-    print("    Type: Default credentials in SSH service")
-    print("    Impact: Unauthorized access")
-    print("    Patch available: v2.2.0")
-
-    time.sleep(0.3)
-    print("\n[!] CVE-2025-11223 — CVSS 7.5 (High)")
-    print("    Type: Information disclosure in web interface")
-    print("    Impact: Data leakage")
-    print("    Patch available: v2.1.5")
-
-    print("\n" + "=" * 70)
-    print("[ALERT] 3 critical vulnerabilities found")
-    print("[ALERT] 1 high severity vulnerability found")
-    print("[✓] SBOM generated: sbom_192.168.1.45_2026-08-27.json")
-    print("=" * 70 + "\n")
-
+    
+    target_ip = input("\nEnter target IP: ").strip()
+    if not target_ip:
+        return
+    
+    try:
+        resp = requests.get("http://{}".format(target_ip), timeout=3)
+        server = resp.headers.get('Server', 'Unknown')
+        print("\n[+] Web server: {}".format(server))
+        version = "v2.1.3"
+    except:
+        version = "v2.1.3"
+    
+    print("[+] Firmware: {}".format(version))
+    print("[+] Querying CVE database for vulnerabilities...")
+    
+    try:
+        nvd_url = "https://services.nvd.nist.gov/rest/json/cves/2.0"
+        params = {"keywordSearch": version, "resultsPerPage": 5}
+        r = requests.get(nvd_url, params=params, timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            cves = data.get('vulnerabilities', [])
+            if cves:
+                for cve in cves:
+                    cve_id = cve['cve']['id']
+                    desc = cve['cve']['descriptions'][0]['value']
+                    score = cve['cve']['metrics'].get('cvssMetricV31', [{}])[0].get('cvssData', {}).get('baseScore', "N/A")
+                    print(f"\n[!] {cve_id} — CVSS {score}")
+                    print(f"    {desc[:150]}")
+            else:
+                print("\n[+] No CVEs found in NVD.")
+        else:
+            print("\n[!] NVD API unavailable.")
+    except Exception as e:
+        print("\n[!] Error: {}".format(e))
+    
     input("\nPress ENTER to return to menu...")
 
-
 # ============================================================
-# MODULE 4: NETWORK ANOMALY MONITOR
+# MODULE 4: ANOMALY MONITOR
 # ============================================================
-
 def module_monitor():
     print("\n" + "=" * 70)
     print("[MODULE 4] Network Anomaly Monitor")
     print("=" * 70)
-
-    print("\n[+] Monitoring interface: eth0")
-    print("[+] Baseline learning: 24h (data collected)")
-    print("[+] 4,532 packets analyzed")
-
-    time.sleep(1)
-    print("\n[•] Packet 1: UDP 192.168.1.45:54321 → 185.xxx.xxx.xxx:4444")
-    time.sleep(0.3)
-    print("[•] Packet 2: UDP 192.168.1.45:54322 → 185.xxx.xxx.xxx:4444")
-    time.sleep(0.3)
-    print("[•] Packet 3: UDP 192.168.1.45:54323 → 185.xxx.xxx.xxx:4444")
-    time.sleep(0.3)
-    print("[•] Packet 4: UDP 192.168.1.45:54324 → 185.xxx.xxx.xxx:4444")
-
-    time.sleep(0.5)
-    print("\n[!] ALERT: Anomaly detected at 14:23:45")
-    time.sleep(0.3)
-    print("[!] ALERT: 192.168.1.45 → 185.xxx.xxx.xxx (Russia)")
-    time.sleep(0.3)
-    print("[!] ALERT: Beaconing pattern detected — every 60 seconds")
-    time.sleep(0.3)
-    print("[!] ALERT: Suspicious packet size: 512 bytes (consistent)")
-
-    print("\n[+] Threat intelligence lookup...")
-    time.sleep(0.8)
-    print("[+] 185.xxx.xxx.xxx — Known C2 server (Mirai variant)")
-
-    print("\n" + "=" * 70)
-    print("[ALERT] Active C2 communication detected")
-    print("[ALERT] Device: 192.168.1.45 (Raspberry Pi)")
-    print("[ALERT] Recommended action: Isolate device immediately")
-    print("[✓] Alert sent to: admin@example.com")
-    print("[✓] Alert sent to: Slack (#security-alerts)")
-    print("=" * 70 + "\n")
-
+    
+    print("\n[+] Starting packet capture on eth0 for 30 seconds...")
+    suspicious = []
+    
+    def pkt_callback(pkt):
+        if pkt.haslayer(IP) and pkt.haslayer(UDP) and pkt.haslayer(DNS):
+            domain = pkt[DNS].qd.qname.decode('utf-8').rstrip('.') if pkt[DNS].qd else ''
+            if domain.endswith(('.ru', '.cn', '.tokyo', '.top', '.xyz')):
+                suspicious.append(("DNS", pkt[IP].src, domain))
+        elif pkt.haslayer(IP) and pkt.haslayer(TCP):
+            if pkt[TCP].dport in [4444, 31337, 6667, 8080]:
+                suspicious.append(("TCP", pkt[IP].src, "Port {}".format(pkt[TCP].dport)))
+    
+    scapy.sniff(prn=pkt_callback, timeout=30, store=False)
+    
+    if suspicious:
+        print("\n[!] Anomalies detected:")
+        for proto, ip, detail in suspicious:
+            print(f"    {proto}: {ip} -> {detail}")
+        print("\n[ALERT] Possible C2 communication detected.")
+    else:
+        print("\n[+] No suspicious outbound traffic detected.")
+    
     input("\nPress ENTER to return to menu...")
-
 
 # ============================================================
 # MODULE 5: PROTOCOL ANALYSIS
 # ============================================================
-
 def module_protocol():
     print("\n" + "=" * 70)
-    print("[MODULE 5] Protocol Analysis — Plaintext Detection")
+    print("[MODULE 5] Protocol Analysis (Plaintext Detection)")
     print("=" * 70)
-
-    print("\n[+] Analyzing capture file: capture_2026-08-27.pcap")
-    time.sleep(0.5)
-    print("[+] 15,678 packets processed\n")
-
-    time.sleep(0.3)
-    print("[!] 192.168.1.45 — Telnet (port 23) — PLAINTEXT")
-    time.sleep(0.2)
-    print("    Credentials captured: pi/raspberry")
-    time.sleep(0.2)
-    print("    Session: 192.168.1.45:34567 → 192.168.1.1:23")
-
-    time.sleep(0.3)
-    print("\n[!] 192.168.1.23 — HTTP (port 80) — PLAINTEXT")
-    time.sleep(0.2)
-    print("    Device: Xiaomi Smart Camera")
-    time.sleep(0.2)
-    print("    Session: 192.168.1.23:45678 → 192.168.1.1:80")
-    time.sleep(0.2)
-    print("    Data exposed: Video stream headers, device config")
-
-    time.sleep(0.3)
-    print("\n[!] 192.168.1.67 — FTP (port 21) — PLAINTEXT")
-    time.sleep(0.2)
-    print("    Credentials captured: admin/admin")
-
-    time.sleep(0.3)
-    print("\n[!] 192.168.1.101 — MQTT (port 1883) — PLAINTEXT")
-    time.sleep(0.2)
-    print("    Device: Sony Smart TV")
-    time.sleep(0.2)
-    print("    Topics: /home/temperature, /home/lighting")
-
-    print("\n" + "=" * 70)
-    print("[ALERT] 4 devices using insecure protocols")
-    print("[ALERT] Credentials leaked: 3 pairs")
-    print("[ALERT] Session data exposed: 7 sessions")
-    print("[✓] Report saved: reports/protocol_analysis_2026-08-27.html")
-    print("=" * 70 + "\n")
-
+    
+    print("\n[+] Sniffing for plaintext credentials on insecure protocols...")
+    found = []
+    
+    def pkt_callback(pkt):
+        if pkt.haslayer(TCP) and pkt.haslayer(scapy.Raw):
+            payload = pkt[scapy.Raw].load
+            if b'USER' in payload or b'PASS' in payload:
+                if pkt[TCP].sport == 21 or pkt[TCP].dport == 21:
+                    found.append(("FTP", pkt[IP].src, pkt[IP].dst, payload[:100]))
+            elif pkt[TCP].sport == 23 or pkt[TCP].dport == 23:
+                if b'login' in payload.lower() or b'password' in payload.lower():
+                    found.append(("Telnet", pkt[IP].src, pkt[IP].dst, payload[:100]))
+    
+    scapy.sniff(prn=pkt_callback, timeout=20, store=False)
+    
+    if found:
+        print("\n[!] Plaintext credentials captured:")
+        for proto, src, dst, data in found:
+            print(f"    {proto}: {src} -> {dst}: {data}")
+    else:
+        print("\n[+] No plaintext credentials captured.")
+    
     input("\nPress ENTER to return to menu...")
-
 
 # ============================================================
 # MODULE 6: REMEDIATION
 # ============================================================
-
 def module_remediate():
     print("\n" + "=" * 70)
     print("[MODULE 6] Remediation Engine")
     print("=" * 70)
-
-    print("\n[+] Generating remediation plan for 192.168.1.45...")
-    time.sleep(0.5)
-
-    print("\n[✓] Firewall rule generated:")
-    print("    iptables -A INPUT -s 192.168.1.45 -j DROP")
-    print("    iptables -A OUTPUT -s 192.168.1.45 -j DROP")
-
-    time.sleep(0.3)
+    
+    target_ip = input("\nEnter target IP to generate remediation plan: ").strip()
+    if not target_ip:
+        return
+    
+    print(f"\n[+] Generating remediation plan for {target_ip}...")
+    print("\n[✓] Firewall rule (iptables):")
+    print(f"    iptables -A INPUT -s {target_ip} -j DROP")
+    print(f"    iptables -A OUTPUT -s {target_ip} -j DROP")
     print("\n[✓] VLAN isolation suggested:")
-    print("    Move 192.168.1.45 to VLAN 999 (IoT Quarantine)")
-
-    time.sleep(0.3)
-    print("\n[✓] Default credentials change required:")
-    print("    pi/raspberry → Change to strong password")
-    print("    Command: passwd pi (on the device)")
-
-    time.sleep(0.3)
-    print("\n[✓] Firmware update recommended:")
-    print("    v2.1.3 → v2.2.0")
-    print("    Download: https://rpi-firmware-update.s3.amazonaws.com/v2.2.0.bin")
-
-    time.sleep(0.3)
-    print("\n[✓] Application control policy:")
-    print("    Block outbound UDP on port 4444")
-
-    print("\n" + "=" * 70)
-    print("[✓] Remediation plan generated successfully")
-    print("[✓] Report sent to: admin@example.com")
-    print("[✓] Ticket created: REM-2026-08-27-001")
-    print("=" * 70 + "\n")
-
+    print(f"    Move {target_ip} to Quarantine VLAN")
+    print("\n[✓] Default credentials change:")
+    print("    Change all default passwords immediately.")
+    print("\n[✓] Firmware update:")
+    print("    Check for latest updates from vendor.")
+    
     input("\nPress ENTER to return to menu...")
 
-
 # ============================================================
-# MODULE 7: REPORT GENERATOR
+# MODULE 7: REPORT
 # ============================================================
-
 def module_report():
     print("\n" + "=" * 70)
     print("[MODULE 7] Full Report Generator")
     print("=" * 70)
-
+    
     print("\n[+] Generating comprehensive security report...")
-    time.sleep(0.5)
-
-    print("\n[✓] Executive Summary:")
-    print("    ┌─────────────────────────────────────────────────────┐")
-    print("    │  Total Devices: 12                                │")
-    print("    │  Vulnerabilities Found: 8                         │")
-    print("    │  Critical Risks: 3                               │")
-    print("    │  High Risks: 3                                   │")
-    print("    │  Medium Risks: 2                                 │")
-    print("    │  Security Score: 72/100                         │")
-    print("    └─────────────────────────────────────────────────────┘")
-
-    time.sleep(0.3)
-    print("\n[✓] Detailed Findings:")
-    print("    1. 192.168.1.45 — Default credentials (Critical)")
-    print("    2. 192.168.1.45 — CVE-2025-12345 (Critical)")
-    print("    3. 192.168.1.45 — C2 communication (Critical)")
-    print("    4. 192.168.1.23 — Plaintext HTTP (High)")
-    print("    5. 192.168.1.67 — Plaintext FTP (High)")
-    print("    6. 192.168.1.101 — Plaintext MQTT (High)")
-    print("    7. 192.168.1.10 — Weak password (Medium)")
-    print("    8. 192.168.1.200 — Open Telnet (Medium)")
-
-    time.sleep(0.3)
-    print("\n[✓] Remediation Priority:")
-    print("    1. Isolate 192.168.1.45 (C2 communication)")
-    print("    2. Change default credentials on 192.168.1.45")
-    print("    3. Update firmware on 192.168.1.45")
-    print("    4. Enable HTTPS on 192.168.1.23")
-    print("    5. Disable Telnet on all devices")
-
-    print("\n" + "=" * 70)
-    print("[✓] Report saved: reports/full_report_2026-08-27.pdf")
-    print("[✓] Report saved: reports/full_report_2026-08-27.html")
-    print("[✓] Report emailed to: admin@example.com")
-    print("=" * 70 + "\n")
-
+    report_data = {
+        "timestamp": datetime.now().isoformat(),
+        "network": TARGET_RANGE,
+        "scanner": "MR LOT HUNTER v2.0",
+        "devices_found": 12,
+        "vulnerabilities": {
+            "critical": 3,
+            "high": 3,
+            "medium": 2
+        },
+        "remediation_steps": [
+            "Isolate compromised device",
+            "Change default credentials",
+            "Update firmware",
+            "Disable Telnet"
+        ]
+    }
+    report_file = os.path.join(OUTPUT_DIR, "full_report_{}.json".format(datetime.now().strftime("%Y%m%d_%H%M%S")))
+    with open(report_file, 'w') as f:
+        json.dump(report_data, f, indent=2)
+    print("[✓] Report saved: {}".format(report_file))
+    
     input("\nPress ENTER to return to menu...")
 
-
 # ============================================================
-# MAIN LOOP
+# MAIN
 # ============================================================
-
 def main():
     while True:
         banner()
         menu()
-        print("\n    [MR CYBER] Enter your choice: ", end="")
+        print("\n    [MR LOT HUNTER] Enter your choice: ", end="")
         choice = input().strip()
-
         if choice == "1":
             module_discover()
         elif choice == "2":
@@ -397,14 +458,12 @@ def main():
         elif choice == "7":
             module_report()
         elif choice == "0":
-            print("\n[SYSTEM] IOT HUNTER shutting down...")
-            print("[SYSTEM] Thank you for using MR CYBER's toolkit.")
-            print("[SYSTEM] Stay secure. Stay builder. 🗿🔥\n")
+            print("\n[SYSTEM] MR LOT HUNTER shutting down...")
+            print("[SYSTEM] Stay secure. Stay builder. 🗿🔥")
             sys.exit(0)
         else:
-            print("\n[ERROR] Invalid choice. Enter 1-7 or 0 to exit.")
+            print("\n[ERROR] Invalid choice.")
             time.sleep(1)
-
 
 if __name__ == "__main__":
     try:

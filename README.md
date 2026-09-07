@@ -43,5 +43,5 @@ IOT HUNTER is a **terminal-based, all-in-one IoT security toolkit** designed for
 ### Installation
 
 ```bash
-git clone https://github.com/yourusername/iot-hunter.git
+git clone https://github.com/mrcyberharsh/iot-hunter.git
 cd iot-hunter

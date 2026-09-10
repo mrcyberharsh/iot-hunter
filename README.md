@@ -52,7 +52,7 @@ Keccak-512: 0x4a53c9c6e7c9a6c...
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/mr-lot-hunter.git
+git clone https://github.com/mrcyberharsh/mr-lot-hunter.git
 cd mr-lot-hunter
 ```
 

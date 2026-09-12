@@ -1,0 +1,32 @@
+# -------------------------------------------------------------------------
+# 🛡️ MR IOT HUNTER - Robots Configuration File
+# Built by MR CYBER (Harsh Saini)
+# -------------------------------------------------------------------------
+
+# Block aggressive AI Scrapers from scraping custom security signatures
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: Anthropic-AI
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+# Allow standard search engines to index the project landing page
+User-agent: *
+Allow: /
+Disallow: /reports/  # Prevent indexers from tracking local scanner reports
+
+# 🔍 Security Analyst Note
+# Looking for a commercial license or hardware integration? 
+# Check the README or contact manager.prachi@zohomail.in

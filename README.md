@@ -1,17 +1,18 @@
-# 🛡️ IOT HUNTER — All-in-One IoT Security Toolkit
+# 🛡️ MR IOT HUNTER — All-in-One IoT Security Toolkit
 
 > *"Complex ko simple. Simple ko powerful."*
 
 Built by **MR CYBER** (Harsh Saini) — cybersecurity builder, OSINT specialist, hardware+software combo.
 
----![Version](https://img.shields.io/badge/version-1.0-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-blue)
+---
+![Version](https://img.shields.io/badge/version-1.0-brightgreen)
+![License](https://shields.io)
 ![Python](https://img.shields.io/badge/python-3.6%2B-blue)
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
 
 ## 📌 Overview
 
-**MR LOT HUNTER** is a lightweight but powerful IoT security auditing tool built for **network discovery, credential testing, firmware analysis, and anomaly detection**.  
+**MR IOT HUNTER** is a lightweight but powerful IoT security auditing tool built for **network discovery, credential testing, firmware analysis, and anomaly detection**.  
 
 It is designed for **defensive security researchers, ethical hackers, and IT admins** who want to identify misconfigurations, weak/default credentials, and insecure protocols in their own lab or enterprise environments.
 
@@ -41,10 +42,8 @@ All discovered credentials are **hashed using Keccak-512** (part of the SHA-3 fa
 - ✅ Hashes are one-way – you cannot reverse them, but you can verify against known hashes
 
 **Example hash:**
-```
 Password: admin123
 Keccak-512: 0x4a53c9c6e7c9a6c...
-```
 
 ---
 
@@ -52,8 +51,8 @@ Keccak-512: 0x4a53c9c6e7c9a6c...
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/mrcyberharsh/mr-lot-hunter.git
-cd mr-lot-hunter
+git clone https://github.com
+cd iot-hunter
 ```
 
 ### 2. Install dependencies (auto-installed on first run, but manual install if needed)
@@ -92,25 +91,28 @@ python3 iot_hunter.py --check-pwd "myPassword123"
 ## 📁 Output Structure
 
 All reports are saved inside the `reports/` directory:
-
-```
-reports/
-├── discovery_20260307_123456.json
-├── credscan_20260307_123456.txt   # hashed passwords only
-└── full_report_20260307_123456.json
-```
-
+reports/├── discovery_20260307_123456.json├── credscan_20260307_123456.txt   # hashed passwords only└── full_report_20260307_123456.json
 ---
 
 ## 🛡️ Disclaimer
 
-**MR LOT HUNTER is intended SOLELY for educational and defensive security purposes.**  
+**MR IOT HUNTER is intended SOLELY for educational and defensive security purposes.**  
 
 - ✅ Use it **only on networks and devices you own** or have explicit written permission to test.  
 - ❌ Unauthorized scanning or credential testing is **ILLEGAL** and violates laws like the IT Act 2000 (India) and CFAA (USA).  
 - 🧑‍⚖️ The author (Harsh Saini) is **not responsible** for any misuse of this tool.  
 
 > *"With great power comes great responsibility."* – Use it ethically.
+
+---
+
+## 💼 Commercial Licensing & Partnerships
+
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. 
+
+If you are an enterprise, firmware developer, or hardware manufacturer (EMS) looking to integrate **MR IOT HUNTER** code, modules, or features into a proprietary, closed-source product, **you cannot use this public version for free.** 
+
+Dual-licensing commercial frameworks, optimized hardware firmware ports, and custom UI dashboards are available. For corporate acquisition, hardware joint ventures, or vendor integration inquiries, please contact management directly.
 
 ---
 
@@ -123,10 +125,13 @@ Please ensure your contributions align with the **defensive & educational** natu
 
 ## 📬 Contact
 
-**Harsh Saini (MR CYBER)** 
-Manager: [manager.prachi@zohomail.in]
+**Harsh Saini (MR CYBER)**  
+Manager: [manager.prachi@zohomail.in]  
+CC: [cyber.h4rsh@zohomail.in]  
 GitHub: [@mrcyberharsh](https://github.com/mrcyberharsh)  
-- 
+
+---
+
 ## ⭐ Star the Project
 
 If you find this tool useful, please **⭐ star the repo** – it helps others discover it and motivates me to keep building. 🚀

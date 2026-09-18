@@ -1,0 +1,87 @@
+
+# ============================================================
+# iot-hunter configuration
+# ============================================================
+
+# "auto" => pick the interface that owns the default route
+interface: auto
+# "auto" => derive from the selected interface's netmask
+subnet: auto
+
+scan:
+  arp_timeout: 3
+  arp_retries: 2
+  nmap_arguments: "-sV -T4 --top-ports 200 --host-timeout 90s"
+  max_hosts: 1024          # refuse to scan larger prefixes by default
+  dns_timeout: 2.0
+
+fingerprint:
+  banner_timeout: 3
+  http_timeout: 5
+  mqtt_timeout: 4
+  coap_timeout: 4
+
+credentials:
+  enabled: true
+  wordlist_path: "./data/default_creds.txt"
+  max_attempts_per_service: 3     # hard cap to avoid lockouts
+  delay_between_attempts: 2.0     # seconds between attempts on the same service
+  connect_timeout: 4.0
+  services: [http, ssh, telnet, mqtt]
+  http_login_paths:
+    - "/"
+    - "/login"
+    - "/login.cgi"
+    - "/cgi-bin/luci"
+    - "/api/login"
+    - "/auth"
+
+anomaly:
+  baseline_minutes: 60            # default learning duration
+  monitor_minutes: 30             # default monitoring duration
+  bpf_filter: "ip"
+  flow_window_seconds: 60
+  beacon_min_samples: 8
+  beacon_interval_tolerance: 0.15 # stdev/mean threshold
+  port_scan_threshold: 20         # distinct dst ports from one src
+  exfil_bytes_threshold: 10485760 # 10 MB in flow_window_seconds
+  zscore_threshold: 3.0
+  baseline_path: "./data/baseline.json"
+
+alerting:
+  enabled: true
+  min_severity: "high"            # low | medium | high | critical
+  email:
+    enabled: false
+    smtp_host: "localhost"
+    smtp_port: 587
+    use_tls: true
+    use_starttls: true
+    username: ""
+    password: ""
+    from_addr: "iot-hunter@localhost"
+    to_addrs:
+      - "soc@example.local"
+  slack:
+    enabled: false
+    webhook_url: ""               # https://hooks.slack.com/services/...
+    channel: "#iot-security"
+    username: "iot-hunter"
+
+compliance:
+  iso27001: true
+  dpdp: true
+  certin: true
+  organisation: "My Organisation"
+
+reporting:
+  output_dir: "./reports"
+  formats: ["pdf", "json"]
+  company_name: "My Organisation"
+  report_title: "IoT Security Assessment"
+
+logging:
+  level: "INFO"
+  file: "./logs/iothunter.log"
+  max_bytes: 5242880
+  backup_count: 5

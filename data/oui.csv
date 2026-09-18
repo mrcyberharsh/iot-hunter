@@ -1,0 +1,47 @@
+# Offline OUI subset for iot-hunter.
+# Replace with the full IEEE OUI CSV:
+#   https://standards-oui.ieee.org/oui/oui.csv   (format: Registry,Assignment,Organization Name,Address)
+# Then convert to "prefix,vendor" or adapt modules/discovery.py:_load()
+00:17:88,Philips Lighting BV
+EC:B5:FA,Philips Lighting BV
+00:04:20,Slim Devices / Logitech
+B8:27:EB,Raspberry Pi Foundation
+DC:A6:32,Raspberry Pi Trading Ltd
+E4:5F:01,Raspberry Pi Trading Ltd
+28:CD:C1,Raspberry Pi Trading Ltd
+2C:F4:32,Espressif Inc.
+24:0A:C4,Espressif Inc.
+3C:61:05,Espressif Inc.
+84:0D:8E,Espressif Inc.
+A4:CF:12,Espressif Inc.
+5C:CF:7F,Espressif Inc.
+18:B4:30,Nest Labs Inc.
+64:16:66,Nest Labs Inc.
+44:65:0D,Amazon Technologies Inc.
+68:54:FD,Amazon Technologies Inc.
+F0:27:2D,Amazon Technologies Inc.
+74:C2:46,Amazon Technologies Inc.
+B4:7C:9C,Amazon Technologies Inc.
+00:0E:58,Sonos Inc.
+5C:AA:FD,Sonos Inc.
+78:28:CA,Sonos Inc.
+94:9F:3E,Sonos Inc.
+AC:84:C6,TP-Link Technologies
+50:C7:BF,TP-Link Technologies
+A4:2B:B0,TP-Link Technologies
+00:1D:0F,TP-Link Technologies
+00:24:E4,Withings
+3C:5A:B4,Google Inc.
+F4:F5:D8,Google Inc.
+1C:F2:9A,Google Inc.
+D8:6C:63,Google Inc.
+54:60:09,Google Inc.
+00:0C:29,VMware Inc.
+00:50:56,VMware Inc.
+08:00:27,PCS Systemtechnik GmbH (VirtualBox)
+00:15:5D,Microsoft Corporation (Hyper-V)
+52:54:00,QEMU / Realtek
+00:1C:42,Parallels Inc.
+00:05:69,VMware Inc.
+00:1E:C0,Microchip Technology
+00:04:4B,NVIDIA Corporation

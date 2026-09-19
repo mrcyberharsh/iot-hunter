@@ -1,0 +1,2 @@
+00:1A:11:*:*:* Google
+B8:27:EB:*:*:* Raspberry Pi Foundation

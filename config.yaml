@@ -1,0 +1,15 @@
+interface: auto
+subnet: auto
+wordlist_path: "modules/data/default_creds.txt"
+oui_db_path: "modules/data/oui.txt"
+thresholds:
+  baseline_duration_sec: 60
+  beacon_interval_variance: 0.15
+  portscan_ports_per_min: 15
+  exfil_bytes_per_min: 5000000
+  window_sec: 60
+credentials:
+  max_attempts_per_service: 3
+  timeout_sec: 3
+report_path: "reports/"
+log_path: "logs/iothunter.log"

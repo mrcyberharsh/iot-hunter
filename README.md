@@ -1,7 +1,7 @@
 cat > README.md << 'EOF'
 # IoT Hunter v2.0
 
-Built by MR CYBER (Harsh Saini)
+Built by MR CYBER PULSE (Harsh Saini)
 "Complex ko Simple. Simple ko Powerful."
 
 GitHub: https://github.com/mrcyberharsh/iot-hunter

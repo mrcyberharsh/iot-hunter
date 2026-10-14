@@ -82,7 +82,7 @@ Reports are saved locally under `reports/` as timestamped PDF (watermarked) and 
 ## Author & Credits
 
 Harsh Saini (MR CYBER)  
-17-year-old GRC & Defensive Cybersecurity Learner  
+GRC & Defensive Cybersecurity Learner  
 "Builders don't stop. They rebuild."
 
 - Website: https://mrcyberharsh.github.io
@@ -123,5 +123,5 @@ See the LICENSE file for details.
 
 ---
 
-Built with love by MR CYBER  
+Built with love by MR Cyber Pulse  
 Complex ko Simple. Simple ko Powerful.

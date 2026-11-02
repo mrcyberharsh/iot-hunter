@@ -191,7 +191,7 @@ GRC & Defensive Cybersecurity Learner
 
 - Website: https://mrcyberharsh.github.io
 - GitHub: https://github.com/mrcyberharsh
-- LinkedIn: https://linkedin.com/in/mrcyberharsh
+- LinkedIn: www.linkedin.com/in/harsh-saini-mrcyberharsh
 - Email: manager.prachi@zohomail.in
 
 ## License

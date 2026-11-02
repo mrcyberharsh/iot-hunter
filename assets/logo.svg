@@ -1,0 +1,216 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">IoT Hunter Logo</title>
+  <desc id="desc">Modern shield and signal logo for IoT Hunter.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1020"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="40" fill="url(#bg)"/>
+
+  <g transform="translate(0 6)">
+    <path d="M256 52 L406 128 L406 252 C406 331 354 405 256 456 C158 405 106 331 106 252 L106 128 Z" fill="url(#shield)" stroke="url(#accent)" stroke-width="12"/>
+
+    <path d="M256 104 L370 160 L370 247 C370 304 335 355 256 401 C177 355 142 304 142 247 L142 160 Z" fill="none" stroke="url(#accent)" stroke-width="6" opacity="0.9"/>
+
+    <g fill="none" stroke="url(#accent)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M178 275 C205 240, 232 224, 256 224 C280 224, 307 240, 334 275" opacity="0.95"/>
+      <path d="M151 312 C190 262, 220 242, 256 242 C292 242, 322 262, 361 312" opacity="0.9"/>
+      <path d="M122 351 C175 293, 216 270, 256 270 C296 270, 337 293, 390 351" opacity="0.8"/>
+    </g>
+
+    <g fill="url(#accent)">
+      <circle cx="256" cy="226" r="16"/>
+      <circle cx="256" cy="305" r="11" opacity="0.85"/>
+      <circle cx="256" cy="350" r="8" opacity="0.7"/>
+    </g>
+
+    <g fill="#e2e8f0" font-family="Segoe UI, Arial, sans-serif" font-weight="700" text-anchor="middle">
+      <text x="256" y="470" font-size="42">IoT</text>
+      <text x="256" y="128" font-size="22" letter-spacing="6" fill="url(#accent)">HUNTER</text>
+    </g>
+  </g>
+</svg>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

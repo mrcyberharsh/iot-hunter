@@ -4,17 +4,19 @@ IoT Hunter - Defensive IoT Security Toolkit
 Built by MR CYBER (Harsh Saini)
 "Complex ko Simple. Simple ko Powerful."
 """
+
+import argparse
 import os
 import sys
-import logging
-import platform
+
 import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from modules import discovery, fingerprint, credentials, anomaly, protocol, remediation, reporting
+from modules import anomaly, credentials, discovery, fingerprint, protocol, remediation, reporting
+from modules.firmware import scan_firmware_file
 
-VERSION = "v2.0"
+VERSION = "v3.0"
 
 BANNER = r"""
  _____ ____ _____   _   _ _   _ _   _ _____ _____ ____
@@ -35,19 +37,21 @@ def show_banner():
 
 
 def load_config(path="config.yaml"):
-    with open(path, "r") as f:
-        return yaml.safe_load(f)
+    with open(path, "r", encoding="utf-8") as handle:
+        return yaml.safe_load(handle) or {}
 
 
 def setup_logging(config):
     log_path = config.get("log_path", "logs/iothunter.log")
-    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    log_dir = os.path.dirname(log_path)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+    logging = __import__("logging")
     logging.basicConfig(
         filename=log_path,
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
-    logging.getLogger().addHandler(logging.StreamHandler(sys.stdout)) if os.environ.get("IOTHUNTER_DEBUG") else None
 
 
 def disclaimer_prompt():
@@ -58,39 +62,45 @@ def disclaimer_prompt():
 
 
 def menu():
-    print("""
+    print(
+        """
 Select an option:
   1) Full scan (discovery + fingerprint + protocol + anomaly + credentials + report)
   2) Discovery only
   3) Protocol scan only
   4) Anomaly monitor only
   5) Exit
-""")
+"""
+    )
     return input("Choice: ").strip()
 
 
 def run_full_scan(config):
-    logging.info("Starting full scan on platform=%s", platform.system())
+    import logging
+
+    logging.info("Starting full scan")
     disc = discovery.run_discovery(config)
     devices = fingerprint.run_fingerprint(disc["devices"])
 
     print("[*] Testing default credentials (rate-limited, local wordlist only)...")
     cred_findings = credentials.run_credential_tests(
-        devices, config.get("wordlist_path"), config["credentials"]["max_attempts_per_service"]
+        devices,
+        config.get("wordlist_path"),
+        config["credentials"]["max_attempts_per_service"],
     )
 
     print("[*] Scanning for insecure protocols (30s live capture)...")
     try:
         proto_findings = protocol.run_protocol_scan(duration_sec=30)
-    except RuntimeError as e:
-        print(f"[!] {e}")
+    except RuntimeError as exc:
+        print(f"[!] {exc}")
         proto_findings = []
 
     print("[*] Monitoring traffic for anomalies...")
     try:
         anomaly_findings = anomaly.run_anomaly_monitor(config)
-    except RuntimeError as e:
-        print(f"[!] {e}")
+    except RuntimeError as exc:
+        print(f"[!] {exc}")
         anomaly_findings = []
 
     plan = remediation.build_remediation_plan(proto_findings, cred_findings, anomaly_findings)
@@ -108,8 +118,34 @@ def run_full_scan(config):
     logging.info("Full scan complete. Reports: %s, %s", json_path, pdf_path)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="IoT Hunter - Defensive IoT Security Toolkit")
+    parser.add_argument("--version", action="store_true", help="Show IoT Hunter version and exit.")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose debug logging.")
+    parser.add_argument("--firmware", help="Path to a firmware image (.bin, .img, .tar, .squashfs).")
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
     show_banner()
+
+    if args.version:
+        print(f"IoT Hunter {VERSION}")
+        return
+
+    if args.firmware:
+        findings = scan_firmware_file(args.firmware)
+        if not findings:
+            print(f"[+] No secret patterns found in {args.firmware}")
+            return
+        for finding in findings:
+            print(
+                f"[!] {finding['type']} | file={finding['file']} | "
+                f"offset={finding['offset']} | match={finding['match'][:80]}"
+            )
+        return
+
     if not os.path.exists("config.yaml"):
         print("[!] config.yaml not found. Please create one (see config.yaml example).")
         sys.exit(1)
@@ -128,22 +164,22 @@ def main():
         elif choice == "2":
             disc = discovery.run_discovery(config)
             devices = fingerprint.run_fingerprint(disc["devices"])
-            for d in devices:
-                print(d)
+            for device in devices:
+                print(device)
         elif choice == "3":
             try:
                 findings = protocol.run_protocol_scan(duration_sec=30)
-                for f in findings:
-                    print(f)
-            except RuntimeError as e:
-                print(f"[!] {e}")
+                for finding in findings:
+                    print(finding)
+            except RuntimeError as exc:
+                print(f"[!] {exc}")
         elif choice == "4":
             try:
                 alerts = anomaly.run_anomaly_monitor(config)
-                for a in alerts:
-                    print(a)
-            except RuntimeError as e:
-                print(f"[!] {e}")
+                for alert in alerts:
+                    print(alert)
+            except RuntimeError as exc:
+                print(f"[!] {exc}")
         elif choice == "5":
             print("Goodbye. Stay secure.")
             break

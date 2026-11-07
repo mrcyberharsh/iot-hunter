@@ -65,7 +65,7 @@ def menu():
     print(
         """
 Select an option:
-  1) Full scan (discovery + fingerprint + protocol + anomaly + credentials + report)
+  1) Full scan (discovery + fingerprint + inventory history + protocol + anomaly + report)
   2) Discovery only
   3) Protocol scan only
   4) Anomaly monitor only

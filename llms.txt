@@ -1,0 +1,34 @@
+# IoT Hunter
+
+> Defensive IoT security toolkit for device discovery, service fingerprinting, TLS hygiene, and remediation reporting on private networks.
+
+IoT Hunter is a Python-based defensive toolkit for authorized IoT assessment. It discovers devices, fingerprints services, audits TLS configuration, and exports remediation playbooks. Licensed under GNU GPL-3.0.
+
+## Quick Start
+
+- [README](https://github.com/mrcyberharsh/iot-hunter/blob/main/README.md): Installation, scan profiles, and usage
+- [Contributing](https://github.com/mrcyberharsh/iot-hunter/blob/main/CONTRIBUTING.md): Development workflow
+- [Security Policy](https://github.com/mrcyberharsh/iot-hunter/blob/main/SECURITY.md): Responsible disclosure
+- [Support](https://github.com/mrcyberharsh/iot-hunter/blob/main/SUPPORT.md): Getting help
+
+## Core Documentation
+
+- [Scan Profiles](https://github.com/mrcyberharsh/iot-hunter#scan-profiles): quick, full, stealth, protocol
+- [TLS Audit](https://github.com/mrcyberharsh/iot-hunter#tls-hygiene-audit): Certificate expiry, weak ciphers, self-signed
+- [Remediation](https://github.com/mrcyberharsh/iot-hunter#remediation-playbooks): Markdown/JSON playbook export
+
+## Use Cases
+
+- Inventory IoT devices on a private /24 network
+- Detect expired or weak TLS certificates on embedded admin panels
+- Generate remediation checklists for network administrators
+
+## Limitations
+
+- Private IPv4 ranges only, maximum /24
+- No credential guessing or exploitation
+- Findings are leads for review, not proof of exploitability
+
+## Optional
+
+- [License](https://github.com/mrcyberharsh/iot-hunter/blob/main/LICENSE): GNU GPL-3.0

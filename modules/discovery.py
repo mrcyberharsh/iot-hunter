@@ -70,7 +70,7 @@ def lookup_vendor(mac, oui_db=None):
 def arp_scan(subnet, timeout=3):
     """Discover hosts with ARP on a local, authorized subnet."""
     network = ipaddress.ip_network(subnet, strict=False)
-    if not isinstance(network, ipaddress.IPv4Network) or network.num_addresses > 4096:
+    if not isinstance(network, ipaddress.IPv4Network) or not network.is_private or network.num_addresses > 4096:
         raise ValueError("ARP discovery is limited to IPv4 networks with at most 4096 addresses.")
     if not SCAPY_OK:
         raise RuntimeError("scapy is required for ARP scanning. Install the project requirements.")
@@ -100,7 +100,7 @@ def scan_ports(ip, ports=(21, 22, 23, 80, 443, 1883, 8080), timeout=0.5):
 
 async def async_scan_network(subnet, ports=(21, 22, 23, 80, 443, 1883, 8080), timeout=0.5):
     network = ipaddress.ip_network(subnet, strict=False)
-    if not isinstance(network, ipaddress.IPv4Network) or network.num_addresses > 256:
+    if not isinstance(network, ipaddress.IPv4Network) or not network.is_private or network.num_addresses > 256:
         raise ValueError("Explicit network inventory is limited to IPv4 /24-sized ranges.")
     results = []
     for host in network.hosts():

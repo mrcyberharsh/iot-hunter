@@ -15,7 +15,7 @@
   <a href="https://github.com/mrcyberharsh/iot-hunter/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mrcyberharsh/iot-hunter?style=flat-square" alt="License" /></a>
 </p>
 
-**IoT Hunter** is a defensive toolkit for inventorying and reviewing IoT devices on networks you own or are authorized to assess. The source currently identifies itself as **v3.0**; this README intentionally avoids the older v2.1 label.
+**IoT Hunter** is a defensive toolkit for inventorying and reviewing IoT devices on networks you own or are authorized to assess. The current development branch identifies itself as **v3.1**.
 
 ## Capabilities
 
@@ -26,7 +26,10 @@
 - Protocol configuration review
 - Network-traffic anomaly monitoring
 - Remediation guidance
-- PDF and JSON report generation
+- PDF and JSON report generation with inventory change summaries
+- Local device inventory snapshots with new, missing, and changed-device tracking
+- Private IPv4 range limits for the desktop scanner
+- Explicit authorization confirmation in the desktop scanner
 - Tkinter graphical interface
 
 Some checks depend on operating-system permissions, network visibility, optional system packages, and external vulnerability-data services. Findings are leads for review, not proof of exploitability.
@@ -44,7 +47,7 @@ Clone the repository and install its Python dependencies:
 ```bash
 git clone https://github.com/mrcyberharsh/iot-hunter.git
 cd iot-hunter
-python -m pip install -r requirements.txt
+python -m pip install --upgrade pip\npython -m pip install -r requirements.txt\npython -m unittest discover -s tests -v
 ```
 
 ### Linux
@@ -80,7 +83,7 @@ GUI:
 python gui.py
 ```
 
-Use the built-in help/menu and the repository configuration to understand the available modes for your version.
+The full scan records local inventory snapshots at `data/inventory-history.json`. The file is local-only and excluded from Git. The default full-scan workflow does not perform credential guessing; use your approved device-management process for credential audits.
 
 ## Repository layout
 
@@ -102,7 +105,7 @@ iot-hunter/
 └── logs/
 ```
 
-## Understanding results
+## Inventory history\n\nEach full scan stores a compact snapshot containing IP address, MAC address, vendor, hostname, device type, and observed open ports. The next run compares the current inventory with the previous snapshot and reports newly observed, missing, and changed devices. History is capped at 50 snapshots. Review the local history file carefully before sharing it because it contains internal network metadata.\n\n## Understanding results
 
 - Service banners and version strings can be inaccurate or intentionally obscured.
 - CVE search results may include false positives; verify product, version, configuration, and vendor advisories.
@@ -111,7 +114,7 @@ iot-hunter/
 
 ## Authorization and safe operation
 
-Use IoT Hunter only on devices and networks you own or have explicit written permission to assess. Keep testing within the agreed scope and use conservative settings. Do not attempt to access accounts, disrupt devices, or test third-party networks without authorization.
+Use IoT Hunter only on devices and private networks you own or have explicit written permission to assess. The desktop scanner asks for authorization confirmation and limits manually entered ranges to private IPv4 networks up to /24. Keep testing within the agreed scope and use conservative settings. The default full-scan workflow skips credential guessing. Do not attempt to access accounts, disrupt devices, or test third-party networks without authorization.
 
 ## Contributing
 

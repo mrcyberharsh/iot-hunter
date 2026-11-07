@@ -13,10 +13,10 @@ import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from modules import anomaly, credentials, discovery, fingerprint, protocol, remediation, reporting
+from modules import anomaly, discovery, fingerprint, inventory, protocol, remediation, reporting
 from modules.firmware import scan_firmware_file
 
-VERSION = "v3.0"
+VERSION = "v3.1"
 
 BANNER = r"""
  _____ ____ _____   _   _ _   _ _   _ _____ _____ ____
@@ -82,11 +82,19 @@ def run_full_scan(config):
     disc = discovery.run_discovery(config)
     devices = fingerprint.run_fingerprint(disc["devices"])
 
-    print("[*] Testing default credentials (rate-limited, local wordlist only)...")
-    cred_findings = credentials.run_credential_tests(
+    # Active credential guessing is intentionally disabled in the default workflow.
+    # Administrators should audit credentials through their approved device-management process.
+    cred_findings = []
+    print("[*] Credential checks skipped (use your approved administrative audit process).")
+
+    inventory_summary = inventory.record_inventory(
         devices,
-        config.get("wordlist_path"),
-        config["credentials"]["max_attempts_per_service"],
+        config.get("inventory_history_path", "data/inventory-history.json"),
+    )
+    print(
+        f"[*] Inventory history: {inventory_summary['new_devices']} new, "
+        f"{inventory_summary['missing_devices']} missing, "
+        f"{inventory_summary['changed_devices']} changed device(s)."
     )
 
     print("[*] Scanning for insecure protocols (30s live capture)...")
@@ -111,6 +119,7 @@ def run_full_scan(config):
         "protocol_findings": proto_findings,
         "anomaly_findings": anomaly_findings,
         "remediation_plan": plan,
+        "inventory_history": inventory_summary,
     }
 
     json_path, pdf_path = reporting.generate_reports(data, config.get("report_path", "reports/"))

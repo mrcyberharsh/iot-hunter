@@ -165,7 +165,17 @@ Open an issue describing:
 
 ## Security Vulnerabilities
 
-Do not open a public issue for security vulnerabilities in IoT Hunter itself. Contact the maintainer privately through the contact information on their GitHub profile and allow time for a fix before public disclosure.
+Do not open a public issue for security vulnerabilities in IoT Hunter itself. Report them privately to the maintainer:
+
+- **Maintainer / Developer:** Harsh Saini
+- **Email:** cyber.h4rsh@zohomail.in
+
+For project or collaboration queries:
+
+- **Manager:** Prachi Sharma
+- **Email:** manager.prachi@zohomail.in
+
+Please allow reasonable time for a fix before public disclosure. See [SECURITY.md](SECURITY.md) for the full responsible-disclosure policy.
 
 ## Documentation
 

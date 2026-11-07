@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import threading
 import tkinter as tk
-from tkinter import filedialog, scrolledtext, ttk
+from tkinter import filedialog, messagebox, scrolledtext, ttk
 
 from modules.discovery import scan_target_network
 from modules.fingerprint import run_fingerprint
@@ -64,6 +64,9 @@ class IoTHunterGUI:
         target = self.target_var.get().strip()
         if not target:
             self.append_output("[!] Please provide a target IP range such as 192.168.1.0/24.", "error")
+            return
+        if not messagebox.askyesno("Authorization required", "Confirm this is a private network you own or are explicitly authorized to inventory."):
+            self.append_output("[!] Authorization not confirmed. Scan cancelled.", "warn")
             return
 
         self.output.configure(state="normal")

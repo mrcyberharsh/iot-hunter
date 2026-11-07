@@ -1,129 +1,88 @@
-# IoT Hunter v2.1
+# IoT Hunter
 
 <div align="center">
-  <img src="assets/mr-cyber-pulse-logo.svg" alt="MR.CYBER PULSE logo" width="1000" />
+  <img src="assets/mr-cyber-pulse-logo.svg" alt="MR CYBER PULSE logo" width="520" />
 </div>
 
 <p align="center">
-  <strong>All-in-One IoT Security Toolkit</strong><br>
-  Discovery, Credential Scanner, Firmware Analysis, Anomaly Detection, Protocol Analysis, Remediation, Reporting
+  <strong>Defensive IoT Security Toolkit</strong><br>
+  Device discovery · Service fingerprinting · Protocol review · Anomaly monitoring · Remediation guidance · Reporting
 </p>
 
 <p align="center">
-  <a href="https://github.com/mrcyberharsh/iot-hunter/stargazers"><img src="https://img.shields.io/github/stars/mrcyberharsh/iot-hunter?style=for-the-badge" alt="GitHub stars" /></a>
-  <a href="https://github.com/mrcyberharsh/iot-hunter/issues"><img src="https://img.shields.io/github/issues/mrcyberharsh/iot-hunter?style=for-the-badge" alt="Issues" /></a>
-  <a href="https://github.com/mrcyberharsh/iot-hunter/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mrcyberharsh/iot-hunter?style=for-the-badge" alt="License" /></a>
+  <a href="https://github.com/mrcyberharsh/iot-hunter/stargazers"><img src="https://img.shields.io/github/stars/mrcyberharsh/iot-hunter?style=flat-square" alt="GitHub stars" /></a>
+  <a href="https://github.com/mrcyberharsh/iot-hunter/issues"><img src="https://img.shields.io/github/issues/mrcyberharsh/iot-hunter?style=flat-square" alt="Issues" /></a>
+  <a href="https://github.com/mrcyberharsh/iot-hunter/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mrcyberharsh/iot-hunter?style=flat-square" alt="License" /></a>
 </p>
 
-Built by MR CYBER (Harsh Saini)  
-"Complex ko Simple. Simple ko Powerful."
+**IoT Hunter** is a defensive toolkit for inventorying and reviewing IoT devices on networks you own or are authorized to assess. The source currently identifies itself as **v3.0**; this README intentionally avoids the older v2.1 label.
 
-## Overview
+## Capabilities
 
-IoT Hunter is a defensive IoT security toolkit designed for ethical network discovery, device fingerprinting, credential testing, anomaly detection, protocol auditing, remediation guidance, and report generation.
+- Local-network device discovery
+- Service and banner fingerprinting
+- Vendor identification using available OUI data
+- CVE information lookup based on detected service details
+- Protocol configuration review
+- Network-traffic anomaly monitoring
+- Remediation guidance
+- PDF and JSON report generation
+- Tkinter graphical interface
 
-It helps security researchers and defenders inspect networks they own or are explicitly authorized to test — with a strong emphasis on visibility, actionable findings, and low-friction local operation.
+Some checks depend on operating-system permissions, network visibility, optional system packages, and external vulnerability-data services. Findings are leads for review, not proof of exploitability.
 
-## Features
+## Requirements
 
-- ARP-based discovery for local subnet inventory
-- TCP port scanning for common IoT service ports
-- OUI/vendor lookup using `manuf` and local OUI database fallback
-- Banner grabbing and device-type classification
-- NVD-based CVE lookup tied to discovered service banners
-- Async scanning for faster reconnaissance and validation
-- Default credential checks using local wordlists
-- Protocol auditing for insecure services and plaintext exposure
-- Traffic anomaly detection with alerting
-- PDF + JSON report generation
-- GUI mode with Tkinter for easier scanning workflows
+- Python 3.10+
+- Dependencies in [requirements.txt](requirements.txt)
+- Optional platform support packages as described below
 
-## Legal Disclaimer
+## Installation
 
-Only scan networks and devices you own or are explicitly authorized to test.  
-Unauthorized scanning of networks may be illegal in your jurisdiction. This tool prompts for confirmation before running scans.
-
-## Quick Start
-
-### 1) Install dependencies
+Clone the repository and install its Python dependencies:
 
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/mrcyberharsh/iot-hunter.git
+cd iot-hunter
+python -m pip install -r requirements.txt
 ```
 
-### 2) Configure the scanner
+### Linux
 
-Edit `config.yaml` to match your network and scanning preferences.
+Install the system packages required by your selected network interfaces and packet-capture features:
 
-Common settings include:
-- `interface` / `subnet` for discovery
-- `wordlist_path` for default credential checks
-- `thresholds` for anomaly sensitivity
-- `report_path` for saved reports
+```bash
+sudo apt update
+sudo apt install -y python3 python3-pip python3-dev libpcap-dev
+```
 
-### 3) Launch the CLI
+### Windows
+
+1. Install Python 3.10 or newer.
+2. Install Npcap if required by the packet-capture functionality.
+3. Open PowerShell and install the Python dependencies.
+
+### macOS
+
+Install Python and the required packet-capture support through trusted package sources, then install the Python dependencies.
+
+## Launch
+
+CLI:
 
 ```bash
 python iothunter.py
 ```
 
-### 4) Launch the GUI
+GUI:
 
 ```bash
 python gui.py
 ```
 
-## Installation Guide
+Use the built-in help/menu and the repository configuration to understand the available modes for your version.
 
-### Linux
-
-```bash
-sudo apt update
-sudo apt install -y python3 python3-pip python3-dev libpcap-dev
-pip install -r requirements.txt
-```
-
-If you are scanning with raw sockets or ARP, run the scanner with elevated permissions:
-
-```bash
-sudo python3 iothunter.py
-```
-
-### Windows
-
-1. Install Python 3.10+ from python.org
-2. Install Npcap with WinPcap-compatible mode enabled
-3. Open PowerShell or Command Prompt as Administrator
-4. Run:
-
-```powershell
-pip install -r requirements.txt
-python .\iothunter.py
-```
-
-### macOS
-
-```bash
-brew install python libpcap
-pip install -r requirements.txt
-sudo python3 iothunter.py
-```
-
-## Usage Modes
-
-The CLI presents a menu with these modes:
-
-1. Full Scan  
-   discovery → fingerprint → credential checks → protocol scan → anomaly monitoring → report generation
-2. Discovery Only  
-   ARP + port scan + vendor lookup
-3. Protocol Scan Only  
-   live insecure protocol detection
-4. Anomaly Monitor Only  
-   packet-based behavior checks
-5. Exit
-
-## Repository Structure
+## Repository layout
 
 ```text
 iot-hunter/
@@ -131,8 +90,6 @@ iot-hunter/
 ├── iothunter.py
 ├── config.yaml
 ├── requirements.txt
-├── README.md
-├── LICENSE
 ├── modules/
 │   ├── anomaly.py
 │   ├── credentials.py
@@ -140,453 +97,31 @@ iot-hunter/
 │   ├── fingerprint.py
 │   ├── protocol.py
 │   ├── remediation.py
-│   ├── reporting.py
-│   └── data/
+│   └── reporting.py
 ├── reports/
-├── logs/
-└── robots.txt
+└── logs/
 ```
 
-## Module Overview
+## Understanding results
 
-- `discovery.py` — ARP scanning, port scanning, OUI vendor lookup
-- `fingerprint.py` — banner grabbing, service parsing, device classification, CVE enrichment
-- `credentials.py` — rate-limited default credential checks
-- `anomaly.py` — packet capture and anomaly monitoring
-- `protocol.py` — insecure protocol detection
-- `remediation.py` — mitigation guidance and commands
-- `reporting.py` — PDF and JSON output generation
+- Service banners and version strings can be inaccurate or intentionally obscured.
+- CVE search results may include false positives; verify product, version, configuration, and vendor advisories.
+- Anomaly alerts are indicators that need context from a network administrator.
+- Reports should be reviewed before sharing because they may contain internal host and service details.
 
-## How the CVE Check Works
+## Authorization and safe operation
 
-For discovered services and banners, IoT Hunter attempts to:
+Use IoT Hunter only on devices and networks you own or have explicit written permission to assess. Keep testing within the agreed scope and use conservative settings. Do not attempt to access accounts, disrupt devices, or test third-party networks without authorization.
 
-1. Read the banner from the open port
-2. Identify a likely service name and version
-3. Query the NVD API using the service/version as a keyword search
-4. Display matching CVEs in the scan output and report
+## Contributing
 
-This provides a lightweight companion to full vulnerability assessment workflows and is intended for local, ethical use.
+Issues and pull requests are welcome. Include your OS, Python version, relevant module, expected behavior, and sanitized logs. Never publish credentials, private IP inventories, packet captures, or other sensitive network data in public issues.
 
-## Notes
+## Author and license
 
-- ARP scanning and packet capture require elevated privileges (root/Administrator).
-- No hardcoded IPs or simulated data are used in the live scan workflow.
-- Reports are generated locally inside the `reports/` directory.
-- For best results, use this tool only on networks you own or are explicitly authorized to assess.
+Created by **Harsh Saini · MR CYBER PULSE**.
 
-## Support & Contribution
-
-If you find this tool useful, consider:
-
-- starring the repository
-- reporting a bug through GitHub Issues
-- contributing via pull requests
-- sharing it with the security community
-
-## Author
-
-Harsh Saini (MR CYBER)  
-GRC & Defensive Cybersecurity Learner
-
-- Website: https://mrcyberharsh.github.io
 - GitHub: https://github.com/mrcyberharsh
-- LinkedIn: www.linkedin.com/in/harsh-saini-mrcyberharsh
-- Email: manager.prachi@zohomail.in
+- Project: https://github.com/mrcyberharsh/iot-hunter
 
-## License
-
-This project is licensed under the GNU General Public License v3.0 (GPL-3.0).  
-See the `LICENSE` file for details.
-
----
-
-Built with love by MR Cyber Pulse  
-Complex ko Simple. Simple ko Powerful.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Licensed under **GNU GPL-3.0**. See [LICENSE](LICENSE).

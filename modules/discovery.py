@@ -1,156 +1,149 @@
 #!/usr/bin/env python3
-"""
-IoT Hunter - Defensive IoT Security Toolkit
-Built by MR CYBER (Harsh Saini)
-"Complex ko Simple. Simple ko Powerful."
-"""
-import os
-import sys
+"""Local network discovery for explicitly authorized IoT inventories."""
+import asyncio
+import ipaddress
 import logging
-import platform
-import yaml
+import socket
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import psutil
 
-from modules import discovery, fingerprint, credentials, anomaly, protocol, remediation, reporting
-
-VERSION = "v2.1"
-
-BANNER = r"""
- _____ ____ _____   _   _ _   _ _   _ _____ _____ ____
-|_   _/ __ \_   _| | | | | | | | \ | |_   _| ____|  _ \
-  | || |  | || |   | |_| | | | |  \| | | | |  _| | |_) |
-  | || |__| || |   |  _  | |_| | |\  | | | | |___|  _ <
-  |_| \____/ |_|   |_| |_|\___/|_| \_| |_| |_____|_| \_\
-"""
-
-
-def show_banner():
-    print(BANNER)
-    print(f"                IOT HUNTER {VERSION}")
-    print("        Built by MR CYBER (Harsh Saini)")
-    print("        GitHub: github.com/mrcyberharsh/iot-hunter")
-    print("        \"Complex ko Simple. Simple ko Powerful.\"")
-    print("-" * 60)
+logger = logging.getLogger("iothunter.discovery")
+try:
+    from scapy.all import ARP, Ether, srp
+    SCAPY_OK = True
+except ImportError:
+    SCAPY_OK = False
+try:
+    import manuf
+    MANUF_DB = manuf.MACdb()
+except Exception:
+    MANUF_DB = None
 
 
-def load_config(path="config.yaml"):
-    with open(path, "r") as f:
-        return yaml.safe_load(f)
+def get_active_interface():
+    """Return the first active non-loopback IPv4 interface."""
+    for name, status in psutil.net_if_stats().items():
+        if not status.isup:
+            continue
+        for address in psutil.net_if_addrs().get(name, []):
+            if address.family == socket.AF_INET and not address.address.startswith("127."):
+                return name, address.address, address.netmask
+    return None, None, None
 
 
-def setup_logging(config):
-    log_path = config.get("log_path", "logs/iothunter.log")
-    os.makedirs(os.path.dirname(log_path), exist_ok=True)
-    logging.basicConfig(
-        filename=log_path,
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    )
-    logging.getLogger().addHandler(logging.StreamHandler(sys.stdout)) if os.environ.get("IOTHUNTER_DEBUG") else None
+def get_subnet(ip, netmask):
+    return str(ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False))
 
 
-def disclaimer_prompt():
-    print("\nDISCLAIMER: Only scan networks and devices you own or are")
-    print("explicitly authorized to test. Unauthorized scanning may be illegal.")
-    resp = input("Type YES to confirm you are authorized to scan this network: ").strip()
-    return resp.upper() == "YES"
-
-
-def menu():
-    print("""
-Select an option:
-  1) Full scan (discovery + fingerprint + protocol + anomaly + credentials + report)
-  2) Discovery only
-  3) Protocol scan only
-  4) Anomaly monitor only
-  5) Exit
-""")
-    return input("Choice: ").strip()
-
-
-def run_full_scan(config):
-    logging.info("Starting full scan on platform=%s", platform.system())
-    disc = discovery.run_discovery(config)
-    devices = fingerprint.run_fingerprint(disc["devices"])
-
-    print("[*] Testing default credentials (rate-limited, local wordlist only)...")
-    cred_findings = credentials.run_credential_tests(
-        devices, config.get("wordlist_path"), config["credentials"]["max_attempts_per_service"]
-    )
-
-    print("[*] Scanning for insecure protocols (30s live capture)...")
+def load_oui_db(path):
+    db = {}
     try:
-        proto_findings = protocol.run_protocol_scan(duration_sec=30)
-    except RuntimeError as e:
-        print(f"[!] {e}")
-        proto_findings = []
+        with open(path, "r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line or line.startswith("#") or " " not in line:
+                    continue
+                prefix, vendor = line.split(" ", 1)
+                db[prefix.replace("*", "").rstrip(":").upper()] = vendor.strip()
+    except FileNotFoundError:
+        logger.warning("OUI database not found at %s", path)
+    return db
 
-    print("[*] Monitoring traffic for anomalies...")
+
+def lookup_vendor(mac, oui_db=None):
+    if not mac:
+        return "Unknown"
+    if MANUF_DB is not None:
+        try:
+            vendor = MANUF_DB.get_vendor(mac)
+            if vendor and vendor != "Unknown":
+                return vendor
+        except Exception:
+            pass
+    prefix = mac.upper().replace("-", ":")[:8]
+    for key, vendor in (oui_db or {}).items():
+        if prefix.startswith(key[:8]):
+            return vendor
+    return "Unknown"
+
+
+def arp_scan(subnet, timeout=3):
+    """Discover hosts with ARP on a local, authorized subnet."""
+    network = ipaddress.ip_network(subnet, strict=False)
+    if not isinstance(network, ipaddress.IPv4Network) or network.num_addresses > 4096:
+        raise ValueError("ARP discovery is limited to IPv4 networks with at most 4096 addresses.")
+    if not SCAPY_OK:
+        raise RuntimeError("scapy is required for ARP scanning. Install the project requirements.")
+    answered = srp(Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(pdst=str(network)),
+                   timeout=timeout, verbose=False)[0]
+    return [{"ip": received.psrc, "mac": received.hwsrc} for _, received in answered]
+
+
+async def async_scan_port(ip, port, timeout=0.5):
     try:
-        anomaly_findings = anomaly.run_anomaly_monitor(config)
-    except RuntimeError as e:
-        print(f"[!] {e}")
-        anomaly_findings = []
-
-    plan = remediation.build_remediation_plan(proto_findings, cred_findings, anomaly_findings)
-
-    data = {
-        "discovery": {"interface": disc["interface"], "subnet": disc["subnet"], "devices": devices},
-        "credential_findings": cred_findings,
-        "protocol_findings": proto_findings,
-        "anomaly_findings": anomaly_findings,
-        "remediation_plan": plan,
-    }
-
-    json_path, pdf_path = reporting.generate_reports(data, config.get("report_path", "reports/"))
-    print(f"\n[+] Reports saved:\n    JSON: {json_path}\n    PDF:  {pdf_path}")
-    logging.info("Full scan complete. Reports: %s, %s", json_path, pdf_path)
+        _, writer = await asyncio.wait_for(asyncio.open_connection(ip, port), timeout=timeout)
+        writer.close()
+        await writer.wait_closed()
+        return True
+    except (asyncio.TimeoutError, OSError, ValueError):
+        return False
 
 
-def main():
-    show_banner()
-    if not os.path.exists("config.yaml"):
-        print("[!] config.yaml not found. Please create one (see config.yaml example).")
-        sys.exit(1)
-
-    config = load_config()
-    setup_logging(config)
-
-    if not disclaimer_prompt():
-        print("Authorization not confirmed. Exiting.")
-        sys.exit(0)
-
-    while True:
-        choice = menu()
-        if choice == "1":
-            run_full_scan(config)
-        elif choice == "2":
-            disc = discovery.run_discovery(config)
-            devices = fingerprint.run_fingerprint(disc["devices"])
-            for d in devices:
-                print(d)
-        elif choice == "3":
-            try:
-                findings = protocol.run_protocol_scan(duration_sec=30)
-                for f in findings:
-                    print(f)
-            except RuntimeError as e:
-                print(f"[!] {e}")
-        elif choice == "4":
-            try:
-                alerts = anomaly.run_anomaly_monitor(config)
-                for a in alerts:
-                    print(a)
-            except RuntimeError as e:
-                print(f"[!] {e}")
-        elif choice == "5":
-            print("Goodbye. Stay secure.")
-            break
-        else:
-            print("Invalid choice.")
+async def async_scan_ports(ip, ports=(21, 22, 23, 80, 443, 1883, 8080), timeout=0.5):
+    checks = await asyncio.gather(*(async_scan_port(ip, port, timeout) for port in ports))
+    return [port for port, opened in zip(ports, checks) if opened]
 
 
-if __name__ == "__main__":
-    main()
+def scan_ports(ip, ports=(21, 22, 23, 80, 443, 1883, 8080), timeout=0.5):
+    return asyncio.run(async_scan_ports(ip, ports, timeout))
 
+
+async def async_scan_network(subnet, ports=(21, 22, 23, 80, 443, 1883, 8080), timeout=0.5):
+    network = ipaddress.ip_network(subnet, strict=False)
+    if not isinstance(network, ipaddress.IPv4Network) or network.num_addresses > 256:
+        raise ValueError("Explicit network inventory is limited to IPv4 /24-sized ranges.")
+    results = []
+    for host in network.hosts():
+        host_ip = str(host)
+        opened = await async_scan_ports(host_ip, ports, timeout)
+        if opened:
+            results.append({"ip": host_ip, "open_ports": opened})
+    return results
+
+
+def scan_target_network(subnet, ports=(21, 22, 23, 80, 443, 1883, 8080), timeout=0.5):
+    return asyncio.run(async_scan_network(subnet, ports, timeout))
+
+
+def resolve_hostname(ip):
+    try:
+        return socket.gethostbyaddr(ip)[0]
+    except (socket.herror, socket.gaierror):
+        return None
+
+
+def run_discovery(config):
+    iface, ip, netmask = get_active_interface()
+    if not ip:
+        raise RuntimeError("No active network interface with an IPv4 address found.")
+    subnet = get_subnet(ip, netmask)
+    oui_db = load_oui_db(config.get("oui_db_path", "modules/data/oui.txt"))
+    print(f"[*] Interface: {iface}  IP: {ip}  Subnet: {subnet}")
+    print("[*] Running ARP discovery on the active local subnet...")
+    inventory = []
+    for host in arp_scan(subnet):
+        ports = scan_ports(host["ip"])
+        entry = {
+            "ip": host["ip"], "mac": host["mac"],
+            "vendor": lookup_vendor(host["mac"], oui_db),
+            "hostname": resolve_hostname(host["ip"]) or "N/A",
+            "open_ports": ports,
+        }
+        inventory.append(entry)
+        logger.info("Discovered device: %s", entry)
+    return {"interface": iface, "subnet": subnet, "devices": inventory}
+
+
+__all__ = ["get_active_interface", "get_subnet", "load_oui_db", "lookup_vendor",
+           "arp_scan", "scan_ports", "async_scan_ports", "async_scan_network",
+           "scan_target_network", "resolve_hostname", "run_discovery"]

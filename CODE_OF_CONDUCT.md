@@ -50,16 +50,22 @@ Project maintainers have the right and responsibility to remove, edit, or reject
 
 ## Reporting
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainer through the contact information on their GitHub profile:
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported privately to the project maintainer:
 
-- Maintainer: **Harsh Saini · MR CYBER PULSE**
-- GitHub: [https://github.com/mrcyberharsh](https://github.com/mrcyberharsh)
+- **Maintainer / Developer:** Harsh Saini
+- **Email:** cyber.h4rsh@zohomail.in
+- **Organization:** MR Cyber Pulse
+
+For escalation or project-management concerns, you may also contact:
+
+- **Manager:** Prachi Sharma
+- **Email:** manager.prachi@zohomail.in
 
 All complaints will be reviewed and investigated promptly and fairly.
 
 All project maintainers are obligated to respect the privacy and security of the reporter of any incident.
 
-Do **not** report Code of Conduct violations through public GitHub issues. Use a private channel.
+Do **not** report Code of Conduct violations through public GitHub issues. Use one of the private email channels above.
 
 ## Enforcement Guidelines
 

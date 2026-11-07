@@ -63,6 +63,17 @@ def generate_pdf_report(data, report_path):
     story.append(Paragraph(summary, styles["Normal"]))
     story.append(Spacer(1, 0.5 * cm))
 
+    inventory = data.get("inventory_history", {})
+    if inventory:
+        story.append(Paragraph("Inventory Change Summary", styles["Heading2"]))
+        story.append(Paragraph(
+            f"New devices: {inventory.get('new_devices', 0)} · "
+            f"Missing devices: {inventory.get('missing_devices', 0)} · "
+            f"Changed devices: {inventory.get('changed_devices', 0)}",
+            styles["Normal"],
+        ))
+        story.append(Spacer(1, 0.5 * cm))
+
     if devices:
         story.append(Paragraph("Discovered Devices", styles["Heading2"]))
         table_data = [["IP", "MAC", "Vendor", "Type", "Open Ports"]]

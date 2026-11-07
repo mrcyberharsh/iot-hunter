@@ -70,8 +70,8 @@ def lookup_vendor(mac, oui_db=None):
 def arp_scan(subnet, timeout=3):
     """Discover hosts with ARP on a local, authorized subnet."""
     network = ipaddress.ip_network(subnet, strict=False)
-    if not isinstance(network, ipaddress.IPv4Network) or not network.is_private or network.num_addresses > 4096:
-        raise ValueError("ARP discovery is limited to IPv4 networks with at most 4096 addresses.")
+    if not isinstance(network, ipaddress.IPv4Network) or not network.is_private or network.num_addresses > 256:
+        raise ValueError("ARP discovery is limited to IPv4 networks with at most 256 addresses.")
     if not SCAPY_OK:
         raise RuntimeError("scapy is required for ARP scanning. Install the project requirements.")
     answered = srp(Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(pdst=str(network)),

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability in IoT Hunter
+    url: mailto:cyber.h4rsh@zohomail.in
+    about: Please report security issues privately via email, not as public GitHub issues.
+  - name: Project or collaboration query
+    url: mailto:manager.prachi@zohomail.in
+    about: Contact Prachi Sharma (Manager, MR Cyber Pulse) for project or collaboration queries.
+  - name: Question or Discussion
+    url: https://github.com/mrcyberharsh/iot-hunter/discussions
+    about: Ask questions and discuss ideas with the community.

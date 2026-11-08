@@ -35,22 +35,22 @@
 
 ## ✨ Capabilities
 
-- 📡 **Local-network Discovery:** Active scanning and device inventorying.
-- 🔍 **Fingerprinting:** Service, banner, and vendor identification (OUI lookup).
-- 🚨 **Vulnerability Lookup:** CVE information based on detected services.
-- 🛡️ **TLS / Certificate Hygiene:** Expiry, weak ciphers, and self-signed cert detection.
-- 🩺 **Protocol Review:** Configuration checking for IoT protocols.
-- 📊 **Reporting:** PDF and JSON generation with inventory change summaries.
-- 🕒 **History Tracking:** Local snapshots with new, missing, and changed-device tracking.
-- 🔒 **Safe by Default:** Private IPv4 range limits, explicit authorization confirmation, and no default credential guessing.
+-  **Local-network Discovery:** Active scanning and device inventorying.
+-  **Fingerprinting:** Service, banner, and vendor identification (OUI lookup).
+-  **Vulnerability Lookup:** CVE information based on detected services.
+-  **TLS / Certificate Hygiene:** Expiry, weak ciphers, and self-signed cert detection.
+-  **Protocol Review:** Configuration checking for IoT protocols.
+-  **Reporting:** PDF and JSON generation with inventory change summaries.
+-  **History Tracking:** Local snapshots with new, missing, and changed-device tracking.
+-  **Safe by Default:** Private IPv4 range limits, explicit authorization confirmation, and no default credential guessing.
 
-## ⚙️ Requirements
+##  Requirements
 
 - **Python** 3.10+
 - Dependencies in [`requirements.txt`](requirements.txt)
 - Optional platform support packages (Npcap for Windows, libpcap for Linux/macOS)
 
-## 🚀 Installation
+##  Installation
 
 Clone the repository and install its Python dependencies:
 
@@ -69,15 +69,15 @@ sudo apt update
 sudo apt install -y python3 python3-pip python3-dev python3-tk libpcap-dev
 ```
 
-### 🪟 Windows
+###  Windows
 1. Install Python 3.10 or newer.
 2. Install [Npcap](https://npcap.com/) (required for packet-capture).
 3. Open PowerShell and install the Python dependencies.
 
-### 🍎 macOS
+###  macOS
 Install Python and the required packet-capture support through trusted package sources, then install the Python dependencies.
 
-## 💻 Launch
+##  Launch
 
 **CLI Mode:**
 ```bash
@@ -111,21 +111,21 @@ iot-hunter/
 └── logs/
 ```
 
-## 📝 Inventory History
+##  Inventory History
 
 Each full scan stores a compact snapshot containing IP address, MAC address, vendor, hostname, device type, and observed open ports. The next run compares the current inventory with the previous snapshot and reports newly observed, missing, and changed devices. 
 
 - History is capped at **50 snapshots**.
 - Review the local history file carefully before sharing it because it contains internal network metadata.
 
-## 🧠 Understanding Results
+## Understanding Results
 
 - **Service banners** and version strings can be inaccurate or intentionally obscured.
 - **CVE search results** may include false positives; verify product, version, and vendor advisories.
 - **Anomaly alerts** are indicators that need context from a network administrator.
 - **Reports** should be reviewed before sharing because they may contain internal host and service details.
 
-## 🔐 Authorization & Safe Operation
+##  Authorization & Safe Operation
 
 Use IoT Hunter **only** on devices and private networks you own or have explicit written permission to assess. 
 
@@ -140,7 +140,7 @@ Issues and pull requests are welcome!
 Please check out our **[CONTRIBUTING.md](CONTRIBUTING.md)** and **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** before submitting.
 Never publish credentials, private IP inventories, packet captures, or other sensitive network data in public issues.
 
-## 👨‍💻 Author & License
+##  Author & License
 
 Created by **Harsh Saini · MR Cyber Pulse**.
 

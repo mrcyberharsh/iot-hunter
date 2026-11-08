@@ -1,91 +1,97 @@
-# IoT Hunter
-
 <div align="center">
-  <img src="assets/mr-cyber-pulse-logo.svg" alt="MR CYBER PULSE logo" width="520" />
+  <img src="logo.png" alt="MR CYBER PULSE logo" width="400" />
 </div>
+
+<h1 align="center">IoT Hunter 🛡️</h1>
 
 <p align="center">
   <strong>Defensive IoT Security Toolkit</strong><br>
-  Device discovery · Service fingerprinting · Protocol review · Anomaly monitoring · Remediation guidance · Reporting
+  <i>Device Discovery · Service Fingerprinting · TLS Hygiene · Remediation Guidance · Reporting</i>
 </p>
 
 <p align="center">
-  <a href="https://github.com/mrcyberharsh/iot-hunter/stargazers"><img src="https://img.shields.io/github/stars/mrcyberharsh/iot-hunter?style=flat-square" alt="GitHub stars" /></a>
-  <a href="https://github.com/mrcyberharsh/iot-hunter/issues"><img src="https://img.shields.io/github/issues/mrcyberharsh/iot-hunter?style=flat-square" alt="Issues" /></a>
-  <a href="https://github.com/mrcyberharsh/iot-hunter/blob/main/LICENSE"><img src="https://img.shields.io/github/license/mrcyberharsh/iot-hunter?style=flat-square" alt="License" /></a>
+  <a href="https://github.com/mrcyberharsh/iot-hunter/stargazers">
+    <img src="https://img.shields.io/github/stars/mrcyberharsh/iot-hunter?style=for-the-badge&logo=github&color=blue" alt="GitHub stars" />
+  </a>
+  <a href="https://github.com/mrcyberharsh/iot-hunter/issues">
+    <img src="https://img.shields.io/github/issues/mrcyberharsh/iot-hunter?style=for-the-badge&logo=github&color=red" alt="Issues" />
+  </a>
+  <a href="https://github.com/mrcyberharsh/iot-hunter/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/mrcyberharsh/iot-hunter?style=for-the-badge&logo=gnu&color=green" alt="License" />
+  </a>
+  <a href="https://www.python.org/">
+    <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
+  </a>
+  <a href="https://github.com/mrcyberharsh/iot-hunter/pulls">
+    <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge" alt="PRs Welcome" />
+  </a>
 </p>
+
+---
 
 **IoT Hunter** is a defensive toolkit for inventorying and reviewing IoT devices on networks you own or are authorized to assess. The current development branch identifies itself as **v3.1**.
 
-## Capabilities
+> ⚠️ **Disclaimer:** Findings are **leads for review**, not proof of exploitability. Some checks depend on operating-system permissions, network visibility, and optional system packages.
 
-- Local-network device discovery
-- Service and banner fingerprinting
-- Vendor identification using available OUI data
-- CVE information lookup based on detected service details
-- Protocol configuration review
-- Network-traffic anomaly monitoring
-- Remediation guidance
-- PDF and JSON report generation with inventory change summaries
-- Local device inventory snapshots with new, missing, and changed-device tracking
-- Private IPv4 range limits for the desktop scanner
-- Explicit authorization confirmation in the desktop scanner
-- Tkinter graphical interface
+## ✨ Capabilities
 
-Some checks depend on operating-system permissions, network visibility, optional system packages, and external vulnerability-data services. Findings are leads for review, not proof of exploitability.
+- 📡 **Local-network Discovery:** Active scanning and device inventorying.
+- 🔍 **Fingerprinting:** Service, banner, and vendor identification (OUI lookup).
+- 🚨 **Vulnerability Lookup:** CVE information based on detected services.
+- 🛡️ **TLS / Certificate Hygiene:** Expiry, weak ciphers, and self-signed cert detection.
+- 🩺 **Protocol Review:** Configuration checking for IoT protocols.
+- 📊 **Reporting:** PDF and JSON generation with inventory change summaries.
+- 🕒 **History Tracking:** Local snapshots with new, missing, and changed-device tracking.
+- 🔒 **Safe by Default:** Private IPv4 range limits, explicit authorization confirmation, and no default credential guessing.
 
-## Requirements
+## ⚙️ Requirements
 
-- Python 3.10+
-- Dependencies in [requirements.txt](requirements.txt)
-- Optional platform support packages as described below
+- **Python** 3.10+
+- Dependencies in [`requirements.txt`](requirements.txt)
+- Optional platform support packages (Npcap for Windows, libpcap for Linux/macOS)
 
-## Installation
+## 🚀 Installation
 
 Clone the repository and install its Python dependencies:
 
 ```bash
 git clone https://github.com/mrcyberharsh/iot-hunter.git
 cd iot-hunter
-python -m pip install --upgrade pip\npython -m pip install -r requirements.txt\npython -m unittest discover -s tests -v
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -v
 ```
 
-### Linux
-
-Install the system packages required by your selected network interfaces and packet-capture features:
-
+### 🐧 Linux
+Install the system packages required by network interfaces and packet-capture features:
 ```bash
 sudo apt update
-sudo apt install -y python3 python3-pip python3-dev libpcap-dev
+sudo apt install -y python3 python3-pip python3-dev python3-tk libpcap-dev
 ```
 
-### Windows
-
+### 🪟 Windows
 1. Install Python 3.10 or newer.
-2. Install Npcap if required by the packet-capture functionality.
+2. Install [Npcap](https://npcap.com/) (required for packet-capture).
 3. Open PowerShell and install the Python dependencies.
 
-### macOS
-
+### 🍎 macOS
 Install Python and the required packet-capture support through trusted package sources, then install the Python dependencies.
 
-## Launch
+## 💻 Launch
 
-CLI:
-
+**CLI Mode:**
 ```bash
 python iothunter.py
 ```
 
-GUI:
-
+**GUI Mode:**
 ```bash
 python gui.py
 ```
 
-The full scan records local inventory snapshots at `data/inventory-history.json`. The file is local-only and excluded from Git. The default full-scan workflow does not perform credential guessing; use your approved device-management process for credential audits.
+*The full scan records local inventory snapshots at `data/inventory-history.json` (local-only, excluded from Git). The default workflow does not perform credential guessing.*
 
-## Repository layout
+## 📂 Repository Layout
 
 ```text
 iot-hunter/
@@ -105,26 +111,41 @@ iot-hunter/
 └── logs/
 ```
 
-## Inventory history\n\nEach full scan stores a compact snapshot containing IP address, MAC address, vendor, hostname, device type, and observed open ports. The next run compares the current inventory with the previous snapshot and reports newly observed, missing, and changed devices. History is capped at 50 snapshots. Review the local history file carefully before sharing it because it contains internal network metadata.\n\n## Understanding results
+## 📝 Inventory History
 
-- Service banners and version strings can be inaccurate or intentionally obscured.
-- CVE search results may include false positives; verify product, version, configuration, and vendor advisories.
-- Anomaly alerts are indicators that need context from a network administrator.
-- Reports should be reviewed before sharing because they may contain internal host and service details.
+Each full scan stores a compact snapshot containing IP address, MAC address, vendor, hostname, device type, and observed open ports. The next run compares the current inventory with the previous snapshot and reports newly observed, missing, and changed devices. 
 
-## Authorization and safe operation
+- History is capped at **50 snapshots**.
+- Review the local history file carefully before sharing it because it contains internal network metadata.
 
-Use IoT Hunter only on devices and private networks you own or have explicit written permission to assess. The desktop scanner asks for authorization confirmation and limits manually entered ranges to private IPv4 networks up to /24. Keep testing within the agreed scope and use conservative settings. The default full-scan workflow skips credential guessing. Do not attempt to access accounts, disrupt devices, or test third-party networks without authorization.
+## 🧠 Understanding Results
 
-## Contributing
+- **Service banners** and version strings can be inaccurate or intentionally obscured.
+- **CVE search results** may include false positives; verify product, version, and vendor advisories.
+- **Anomaly alerts** are indicators that need context from a network administrator.
+- **Reports** should be reviewed before sharing because they may contain internal host and service details.
 
-Issues and pull requests are welcome. Include your OS, Python version, relevant module, expected behavior, and sanitized logs. Never publish credentials, private IP inventories, packet captures, or other sensitive network data in public issues.
+## 🔐 Authorization & Safe Operation
 
-## Author and license
+Use IoT Hunter **only** on devices and private networks you own or have explicit written permission to assess. 
 
-Created by **Harsh Saini · MR CYBER PULSE**.
+- The desktop scanner asks for authorization confirmation.
+- Manually entered ranges are limited to private IPv4 networks up to `/24`.
+- The default workflow skips credential guessing.
+- **Do not** attempt to access accounts, disrupt devices, or test third-party networks without authorization.
 
-- GitHub: https://github.com/mrcyberharsh
-- Project: https://github.com/mrcyberharsh/iot-hunter
+## 🤝 Contributing
 
-Licensed under **GNU GPL-3.0**. See [LICENSE](LICENSE).
+Issues and pull requests are welcome! 
+Please check out our **[CONTRIBUTING.md](CONTRIBUTING.md)** and **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** before submitting.
+Never publish credentials, private IP inventories, packet captures, or other sensitive network data in public issues.
+
+## 👨‍💻 Author & License
+
+Created by **Harsh Saini · MR Cyber Pulse**.
+
+- **GitHub:** [@mrcyberharsh](https://github.com/mrcyberharsh)
+- **Project:** [iot-hunter](https://github.com/mrcyberharsh/iot-hunter)
+- **Contact:** cyber.h4rsh@zohomail.in
+
+Licensed under **GNU GPL-3.0**. See [`LICENSE`](LICENSE) for details.

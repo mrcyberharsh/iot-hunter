@@ -2,7 +2,7 @@
   <img src="logo.png" alt="MR CYBER PULSE logo" width="400" />
 </div>
 
-<h1 align="center">IoT Hunter 🛡️</h1>
+<h1 align="center">IoT Hunter </h1>
 
 <p align="center">
   <strong>Defensive IoT Security Toolkit</strong><br>

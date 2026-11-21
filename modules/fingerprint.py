@@ -39,17 +39,35 @@ def parse_banner_service(banner):
         return "unknown", None
     text = banner.strip()
     patterns = [
-        ("apache", ["apache"]), ("nginx", ["nginx"]), ("ssh", ["ssh"]),
-        ("telnet", ["telnet"]), ("mqtt", ["mqtt"]), ("http", ["http"]),
-        ("ftp", ["ftp"]), ("smtp", ["smtp"]), ("mysql", ["mysql"]),
-        ("redis", ["redis"]), ("postgresql", ["postgres", "postgresql"]),
+        ("apache", ["apache"]),
+        ("nginx", ["nginx"]),
+        ("ssh", ["ssh"]),
+        ("telnet", ["telnet"]),
+        ("mqtt", ["mqtt", "mosquitto"]),
+        ("http", ["http"]),
+        ("ftp", ["ftp"]),
+        ("smtp", ["smtp"]),
+        ("mysql", ["mysql"]),
+        ("redis", ["redis"]),
+        ("postgresql", ["postgresql", "postgres"]),
         ("mongodb", ["mongodb"]),
     ]
+
     for service, keywords in patterns:
         for keyword in keywords:
-            if keyword in text.lower():
-                match = re.search(rf"{re.escape(keyword)}[ /:-]*v?([0-9]+(?:\.[0-9]+){{0,3}})", text, re.I)
-                return service, match.group(1) if match else None
+            if re.search(rf"(?<![A-Za-z0-9]){re.escape(keyword)}(?![A-Za-z0-9])", text, re.I):
+                version_match = re.search(
+                    r"(?:\b|[_/\s])v?([0-9]+(?:\.[0-9]+){0,3}(?:[-_][A-Za-z0-9]+)?)",
+                    text,
+                    re.I,
+                )
+                version = version_match.group(1) if version_match else None
+
+                if service == "ssh" and version:
+                    version_match = re.search(r"(?:^|\s)(?:SSH-)?([0-9]+(?:\.[0-9]+)?(?:[._-][A-Za-z0-9]+)?)", text, re.I)
+                    version = version_match.group(1) if version_match else version
+
+                return service, version
     return "unknown", None
 
 

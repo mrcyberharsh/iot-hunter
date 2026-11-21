@@ -35,24 +35,24 @@
 
 ## ✨ Capabilities
 
--  **Local-network Discovery:** Active scanning and device inventorying.
--  **Fingerprinting:** Service, banner, and vendor identification (OUI lookup).
--  **Vulnerability Lookup:** CVE information based on detected services.
--  **TLS / Certificate Hygiene:** Expiry, weak ciphers, and self-signed cert detection.
--  **Protocol Review:** Configuration checking for IoT protocols.
--  **Reporting:** PDF and JSON generation with inventory change summaries.
--  **History Tracking:** Local snapshots with new, missing, and changed-device tracking.
--  **Safe by Default:** Private IPv4 range limits, explicit authorization confirmation, and no default credential guessing.
+- **Local-network Discovery:** Active scanning and device inventorying.
+- **Fingerprinting:** Service, banner, and vendor identification (OUI lookup).
+- **Vulnerability Lookup:** CVE information based on detected services.
+- **TLS / Certificate Hygiene:** Expiry, weak ciphers, and self-signed certificate detection.
+- **Protocol Review:** Configuration checking for IoT protocols.
+- **Reporting:** PDF and JSON generation with inventory change summaries.
+- **History Tracking:** Local snapshots with new, missing, and changed-device tracking.
+- **Safe by Default:** Private IPv4 range limits, explicit authorization confirmation, and no default credential guessing.
 
-##  Requirements
+## Requirements
 
 - **Python** 3.10+
 - Dependencies in [`requirements.txt`](requirements.txt)
 - Optional platform support packages (Npcap for Windows, libpcap for Linux/macOS)
 
-##  Installation
+## Installation
 
-Clone the repository and install its Python dependencies:
+Clone the repository and create a Python environment. Run the commands below from a terminal on your system.
 
 ```bash
 git clone https://github.com/mrcyberharsh/iot-hunter.git
@@ -62,12 +62,36 @@ python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
+If `python` is not available on Linux or macOS, use `python3` for the commands above.
+
 ### 🐧 Linux
-Install the system packages required by network interfaces and packet-capture features:
-```bash
-sudo apt update
-sudo apt install -y python3 python3-pip python3-dev python3-tk libpcap-dev
-```
+
+1. Install Python 3.10+, Tkinter, pip, and libpcap development tools.
+
+   ```bash
+   sudo apt update
+   sudo apt install -y python3 python3-pip python3-dev python3-tk libpcap-dev
+   ```
+
+   For distributions that do not use `apt`, install equivalent packages with your package manager.
+
+2. Clone the repository and install the dependencies:
+
+   ```bash
+   git clone https://github.com/mrcyberharsh/iot-hunter.git
+   cd iot-hunter
+   python3 -m pip install --upgrade pip
+   python3 -m pip install -r requirements.txt
+   python3 -m unittest discover -s tests -v
+   ```
+
+3. Packet capture may require elevated privileges. Run discovery or a protocol scan from a terminal with the required network permissions:
+
+   ```bash
+   sudo python3 iothunter.py
+   ```
+
+   Type `YES` at the authorization prompt, then choose `2` (Discovery only) for a first test.
 
 ### 🪟 Windows
 
@@ -94,7 +118,7 @@ IoT Hunter uses [Scapy](https://scapy.net/) for ARP discovery and live packet ca
    ```
    Type `YES` at the authorization prompt, then choose `2` (Discovery only) for a first test.
 
-Example of a successful discovery on Windows (illustrative, with sanitized placeholder values; your interface name, addresses and devices will differ):
+Example of a successful discovery on Windows (illustrative, with sanitized placeholder values; your interface name, addresses, and devices will differ):
 
 ```text
 DISCLAIMER: Only scan networks and devices you own or are
@@ -119,20 +143,49 @@ Choice: 2
 - Scan finishes with no devices: confirm the terminal is running as Administrator and that you are connected to the network you intend to assess.
 - `python` is not recognized: reinstall Python with **Add python.exe to PATH** ticked, or use `py -m pip ...` and `py iothunter.py`.
 
-###  macOS
-Install Python and the required packet-capture support through trusted package sources, then install the Python dependencies.
+### 🍎 macOS
 
-##  Launch
+1. Install Python 3.10 or newer and Homebrew's libpcap tools:
+
+   ```bash
+   brew install python libpcap
+   ```
+
+   If Homebrew is not installed, use <https://brew.sh/> or your preferred trusted package manager.
+
+2. Clone the repository and install the dependencies:
+
+   ```bash
+   git clone https://github.com/mrcyberharsh/iot-hunter.git
+   cd iot-hunter
+   python3 -m pip install --upgrade pip
+   python3 -m pip install -r requirements.txt
+   python3 -m unittest discover -s tests -v
+   ```
+
+3. Run the tool from the terminal:
+
+   ```bash
+   sudo python3 iothunter.py
+   ```
+
+   Type `YES` at the authorization prompt, then choose `2` (Discovery only) for a first test. Packet-capture permissions may require an Administrator account or macOS network-security approval.
+
+## Launch
 
 **CLI Mode:**
+
 ```bash
 python iothunter.py
 ```
 
 **GUI Mode:**
+
 ```bash
 python gui.py
 ```
+
+On systems where `python` is unavailable, use `python3 iothunter.py` or `python3 gui.py`.
 
 *The full scan records local inventory snapshots at `data/inventory-history.json` (local-only, excluded from Git). The default workflow does not perform credential guessing.*
 
@@ -156,9 +209,9 @@ iot-hunter/
 └── logs/
 ```
 
-##  Inventory History
+## Inventory History
 
-Each full scan stores a compact snapshot containing IP address, MAC address, vendor, hostname, device type, and observed open ports. The next run compares the current inventory with the previous snapshot and reports newly observed, missing, and changed devices. 
+Each full scan stores a compact snapshot containing IP address, MAC address, vendor, hostname, device type, and observed open ports. The next run compares the current inventory with the previous snapshot and reports newly observed, missing, and changed devices.
 
 - History is capped at **50 snapshots**.
 - Review the local history file carefully before sharing it because it contains internal network metadata.
@@ -170,9 +223,9 @@ Each full scan stores a compact snapshot containing IP address, MAC address, ven
 - **Anomaly alerts** are indicators that need context from a network administrator.
 - **Reports** should be reviewed before sharing because they may contain internal host and service details.
 
-##  Authorization & Safe Operation
+## Authorization & Safe Operation
 
-Use IoT Hunter **only** on devices and private networks you own or have explicit written permission to assess. 
+Use IoT Hunter **only** on devices and private networks you own or have explicit written permission to assess.
 
 - The desktop scanner asks for authorization confirmation.
 - Manually entered ranges are limited to private IPv4 networks up to `/24`.
@@ -181,11 +234,11 @@ Use IoT Hunter **only** on devices and private networks you own or have explicit
 
 ## 🤝 Contributing
 
-Issues and pull requests are welcome! 
+Issues and pull requests are welcome!
 Please check out our **[CONTRIBUTING.md](CONTRIBUTING.md)** and **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** before submitting.
 Never publish credentials, private IP inventories, packet captures, or other sensitive network data in public issues.
 
-##  Author & License
+## Author & License
 
 Created by **Harsh Saini · MR Cyber Pulse**.
 
@@ -194,6 +247,7 @@ Created by **Harsh Saini · MR Cyber Pulse**.
 - **Contact:** cyber.h4rsh@zohomail.in
 
 Licensed under **GNU GPL-3.0**. See [`LICENSE`](LICENSE) for details.
+
 ## 🌱 Contributors Welcome
 
 IoT Hunter is actively looking for contributors! Whether you're fixing a typo or building a new audit module — your help matters.

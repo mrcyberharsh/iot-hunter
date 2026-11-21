@@ -6,6 +6,7 @@ Only private IPv4 ranges up to /24 are accepted by this service.
 from __future__ import annotations
 
 import concurrent.futures
+import hashlib
 import ipaddress
 import json
 import os
@@ -71,12 +72,24 @@ def init_db():
           kind TEXT, message TEXT, payload TEXT
         );
         CREATE TABLE IF NOT EXISTS api_tokens (
-          token_hash TEXT PRIMARY KEY, created_at TEXT
+          token_hash TEXT PRIMARY KEY, created_at TEXT, expires_at REAL
+        );
+        CREATE TABLE IF NOT EXISTS api_rate_limits (
+          token_hash TEXT PRIMARY KEY, window_start REAL NOT NULL, request_count INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS schedules (
+          id TEXT PRIMARY KEY, cron_expr TEXT NOT NULL, subnet TEXT NOT NULL,
+          ports TEXT NOT NULL, timeout REAL NOT NULL, created_at TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS cve_cache (
           cache_key TEXT PRIMARY KEY, cached_at REAL, payload TEXT
         );
         """)
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(api_tokens)")}
+        if "expires_at" not in columns:
+            conn.execute("ALTER TABLE api_tokens ADD COLUMN expires_at REAL")
+            ttl = int(CONFIG.get("api", {}).get("token_ttl_hours", 24)) * 3600
+            conn.execute("UPDATE api_tokens SET expires_at = strftime('%s', created_at) + ? WHERE expires_at IS NULL", (ttl,))
 
 
 init_db()
@@ -164,7 +177,10 @@ def scan_worker(job_id: str, subnets: list[str], ports: list[int], timeout: floa
         enriched = fingerprint.run_fingerprint(all_devices)
         now = datetime.now(timezone.utc).isoformat()
         with db() as conn:
-            previous = {r["ip"]: dict(r) for r in conn.execute("SELECT * FROM devices")}
+            placeholders = ",".join("?" for _ in subnets)
+            previous = {r["ip"]: dict(r) for r in conn.execute(
+                f"SELECT * FROM devices WHERE subnet IN ({placeholders})", tuple(subnets)
+            )}
             current_ips = set()
             for item in enriched:
                 ip = item["ip"]
@@ -183,7 +199,7 @@ def scan_worker(job_id: str, subnets: list[str], ports: list[int], timeout: floa
                     record_alert("device_changed", f"Device ports changed: {ip}", item)
             for ip, old in previous.items():
                 if ip not in current_ips:
-                    conn.execute("UPDATE devices SET online=0 WHERE ip=?", (ip,))
+                    conn.execute("UPDATE devices SET online=0 WHERE ip=? AND subnet IN (" + placeholders + ")", (ip, *subnets))
                     if old["online"]:
                         record_alert("device_offline", f"Device went offline: {ip}", {"ip": ip})
             conn.execute("INSERT OR REPLACE INTO scans(id,created_at,subnet,status,results) VALUES(?,?,?,?,?)",
@@ -207,22 +223,45 @@ def launch_scan(subnet: str, ports: list[int], timeout: float = 3) -> str:
     return job_id
 
 
-def rate_limited_token(authorization: str | None = Header(default=None)):
+def validate_bearer_token(authorization: str | None) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Bearer token required")
     token = authorization[7:].strip()
-    digest = __import__("hashlib").sha256(token.encode()).hexdigest()
-    with db() as conn:
-        valid = conn.execute("SELECT 1 FROM api_tokens WHERE token_hash=?", (digest,)).fetchone()
-    if not valid:
-        raise HTTPException(401, "Invalid token")
+    digest = hashlib.sha256(token.encode()).hexdigest()
     now = time.time()
-    history = [t for t in rate_state.get(digest, []) if now - t < 60]
-    if len(history) >= int(CONFIG.get("api", {}).get("rate_limit", 100)):
-        raise HTTPException(429, "Rate limit exceeded")
-    history.append(now)
-    rate_state[digest] = history
+    with db() as conn:
+        valid = conn.execute("SELECT expires_at FROM api_tokens WHERE token_hash=?", (digest,)).fetchone()
+        if not valid or not valid["expires_at"] or float(valid["expires_at"]) <= now:
+            if valid:
+                conn.execute("DELETE FROM api_tokens WHERE token_hash=?", (digest,))
+                conn.execute("DELETE FROM api_rate_limits WHERE token_hash=?", (digest,))
+            raise HTTPException(401, "Invalid or expired token")
+        limit = int(CONFIG.get("api", {}).get("rate_limit", 100))
+        row = conn.execute("SELECT window_start,request_count FROM api_rate_limits WHERE token_hash=?", (digest,)).fetchone()
+        if not row or now - float(row["window_start"]) >= 60:
+            conn.execute("INSERT OR REPLACE INTO api_rate_limits(token_hash,window_start,request_count) VALUES(?,?,1)", (digest, now))
+        elif int(row["request_count"]) >= limit:
+            raise HTTPException(429, "Rate limit exceeded")
+        else:
+            conn.execute("UPDATE api_rate_limits SET request_count=request_count+1 WHERE token_hash=?", (digest,))
+    return digest
+
+
+def rate_limited_token(authorization: str | None = Header(default=None)):
+    validate_bearer_token(authorization)
     return True
+
+
+@app.middleware("http")
+async def protect_dashboard_api(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/api/") and path != "/api/auth/token":
+        try:
+            validate_bearer_token(request.headers.get("authorization"))
+        except HTTPException as exc:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return await call_next(request)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -292,10 +331,13 @@ def add_schedule(body: ScheduleRequest):
     except ValueError as exc:
         raise HTTPException(400, f"Invalid cron expression: {exc}") from exc
     schedule_id = uuid.uuid4().hex[:12]
-    scheduler.add_job(launch_scan, trigger, id=schedule_id,
-                      args=[",".join(nets), ports, float(SCAN_CFG.get("default_timeout", 3))])
+    timeout = float(SCAN_CFG.get("default_timeout", 3))
+    scheduler.add_job(launch_scan, trigger, id=schedule_id, args=[",".join(nets), ports, timeout], replace_existing=True)
     schedule_jobs[schedule_id] = {"id": schedule_id, "cron_expr": body.cron_expr,
                                   "subnet": ",".join(nets), "ports": ports}
+    with db() as conn:
+        conn.execute("INSERT INTO schedules(id,cron_expr,subnet,ports,timeout,created_at) VALUES(?,?,?,?,?,?)",
+                     (schedule_id, body.cron_expr, ",".join(nets), json.dumps(ports), timeout, datetime.now(timezone.utc).isoformat()))
     return schedule_jobs[schedule_id]
 
 
@@ -310,6 +352,8 @@ def delete_schedule(schedule_id: str):
         raise HTTPException(404, "Schedule not found")
     scheduler.remove_job(schedule_id)
     del schedule_jobs[schedule_id]
+    with db() as conn:
+        conn.execute("DELETE FROM schedules WHERE id=?", (schedule_id,))
     return {"deleted": True}
 
 
@@ -377,10 +421,12 @@ def issue_token(request: Request, x_admin_secret: str | None = Header(default=No
         raise HTTPException(401, "Valid X-Admin-Secret header required")
     token = secrets.token_urlsafe(32)
     digest = __import__("hashlib").sha256(token.encode()).hexdigest()
+    ttl = max(1, int(CONFIG.get("api", {}).get("token_ttl_hours", 24))) * 3600
+    created = datetime.now(timezone.utc).isoformat()
     with db() as conn:
-        conn.execute("INSERT INTO api_tokens(token_hash,created_at) VALUES(?,?)",
-                     (digest, datetime.now(timezone.utc).isoformat()))
-    return {"access_token": token, "token_type": "bearer", "expires_in": 86400}
+        conn.execute("INSERT INTO api_tokens(token_hash,created_at,expires_at) VALUES(?,?,?)",
+                     (digest, created, time.time() + ttl))
+    return {"access_token": token, "token_type": "bearer", "expires_in": ttl}
 
 
 # Public versioned API. The local dashboard endpoints remain available on /api.
@@ -397,6 +443,18 @@ app.get("/v1/report/{scan_id}/pdf", dependencies=[Depends(rate_limited_token)])(
 @app.on_event("startup")
 def startup():
     scheduler.start()
+    from apscheduler.triggers.cron import CronTrigger
+    with db() as conn:
+        rows = conn.execute("SELECT * FROM schedules").fetchall()
+    for row in rows:
+        try:
+            trigger = CronTrigger.from_crontab(row["cron_expr"])
+            ports = json.loads(row["ports"])
+            scheduler.add_job(launch_scan, trigger, id=row["id"], replace_existing=True,
+                              args=[row["subnet"], ports, float(row["timeout"])])
+            schedule_jobs[row["id"]] = {"id": row["id"], "cron_expr": row["cron_expr"], "subnet": row["subnet"], "ports": ports}
+        except (ValueError, TypeError, KeyError):
+            continue
 
 
 @app.on_event("shutdown")

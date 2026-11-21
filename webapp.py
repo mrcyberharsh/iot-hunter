@@ -9,6 +9,7 @@ import concurrent.futures
 import ipaddress
 import json
 import os
+import re
 import secrets
 import sqlite3
 import threading
@@ -314,6 +315,9 @@ def delete_schedule(schedule_id: str):
 
 @app.get("/api/report/{scan_id}/pdf")
 def report_pdf(scan_id: str):
+    # Scan IDs are generated as UUID hex strings; reject any other path parameter.
+    if not re.fullmatch(r"[0-9a-f]{32}", scan_id):
+        raise HTTPException(400, "Invalid scan ID")
     with db() as conn:
         row = conn.execute("SELECT * FROM scans WHERE id=?", (scan_id,)).fetchone()
     if not row:
@@ -325,7 +329,14 @@ def report_pdf(scan_id: str):
     from reportlab.lib.units import cm
     import tempfile
     results = json.loads(row["results"] or "[]")
-    path = DATA_DIR / f"report-{scan_id}.pdf"
+    # Create the output file inside the fixed data directory. The request value
+    # is never used to construct a filesystem path.
+    report_file = tempfile.NamedTemporaryFile(
+        mode="wb", suffix=".pdf", prefix="iot-hunter-report-",
+        dir=str(DATA_DIR), delete=False
+    )
+    path = report_file.name
+    report_file.close()
     styles = getSampleStyleSheet()
     story = [Paragraph("IoT Hunter v4.0 — Security Report", styles["Title"]),
              Paragraph(f"Timestamp: {row['created_at']}", styles["Normal"]),

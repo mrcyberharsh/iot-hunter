@@ -256,6 +256,3 @@ IoT Hunter is actively looking for contributors! Whether you're fixing a typo or
 
 **Not sure where to start?** Open an issue and say hi — we'll help you find something.
 
-<a href="https://github.com/mrcyberharsh/iot-hunter/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=mrcyberharsh/iot-hunter" />
-</a>

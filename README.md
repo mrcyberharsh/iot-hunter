@@ -69,10 +69,55 @@ sudo apt update
 sudo apt install -y python3 python3-pip python3-dev python3-tk libpcap-dev
 ```
 
-###  Windows
-1. Install Python 3.10 or newer.
-2. Install [Npcap](https://npcap.com/) (required for packet-capture).
-3. Open PowerShell and install the Python dependencies.
+### 🪟 Windows
+
+IoT Hunter uses [Scapy](https://scapy.net/) for ARP discovery and live packet capture. On Windows this requires **Npcap**, so install it before running a scan.
+
+1. **Install Python 3.10 or newer** from [python.org](https://www.python.org/downloads/windows/). Tick **"Add python.exe to PATH"** in the installer.
+2. **Install Npcap** (packet-capture library):
+   - Download the installer only from the official site: <https://npcap.com/#download>.
+   - Run the installer and keep **"Install Npcap in WinPcap API-compatible Mode"** checked.
+   - Restart the terminal (or reboot) after installation.
+3. **Open PowerShell as Administrator.** Right-click *Windows PowerShell* (or *Terminal*) in the Start menu and choose **Run as administrator**.
+   > ⚠️ Administrator rights are required for network scans. Without them, ARP discovery and packet capture fail or return no results.
+4. **Clone the repository and install the Python dependencies:**
+   ```powershell
+   git clone https://github.com/mrcyberharsh/iot-hunter.git
+   cd iot-hunter
+   python -m pip install --upgrade pip
+   python -m pip install -r requirements.txt
+   python -m unittest discover -s tests -v
+   ```
+5. **Run a scan** from the same Administrator terminal:
+   ```powershell
+   python iothunter.py
+   ```
+   Type `YES` at the authorization prompt, then choose `2` (Discovery only) for a first test.
+
+Example of a successful discovery on Windows (illustrative, with sanitized placeholder values; your interface name, addresses and devices will differ):
+
+```text
+DISCLAIMER: Only scan networks and devices you own or are
+explicitly authorized to test. Unauthorized scanning may be illegal.
+Type YES to confirm you are authorized to scan this network: YES
+
+Select an option:
+  1) Full scan (discovery + fingerprint + inventory history + protocol + anomaly + report)
+  2) Discovery only
+  3) Protocol scan only
+  4) Anomaly monitor only
+  5) Exit
+
+Choice: 2
+[*] Interface: Wi-Fi  IP: 192.0.2.10  Subnet: 192.0.2.0/24
+[*] Running ARP discovery on the active local subnet...
+```
+
+**Troubleshooting**
+
+- `No libpcap provider available` or `winpcap is not installed`: Npcap is missing or was installed without WinPcap API-compatible mode. Reinstall it from <https://npcap.com/>.
+- Scan finishes with no devices: confirm the terminal is running as Administrator and that you are connected to the network you intend to assess.
+- `python` is not recognized: reinstall Python with **Add python.exe to PATH** ticked, or use `py -m pip ...` and `py iothunter.py`.
 
 ###  macOS
 Install Python and the required packet-capture support through trusted package sources, then install the Python dependencies.

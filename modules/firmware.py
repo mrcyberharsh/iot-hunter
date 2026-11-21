@@ -179,8 +179,20 @@ def _scan_line_for_patterns(line: str, offset: int) -> list[dict[str, Any]]:
 
 def _extract_tar_archive(archive_path: Path, destination: Path) -> None:
     """Extract a tar archive to a directory."""
+    dest = destination.resolve()
     with tarfile.open(archive_path, "r:*") as archive:
-        archive.extractall(destination)
+        safe_members = []
+        for member in archive.getmembers():
+            # Skip links/devices and anything that would land outside destination
+            # (path traversal such as "../../etc/cron.d/x" or absolute paths).
+            if not (member.isfile() or member.isdir()):
+                continue
+            target = (dest / member.name).resolve()
+            if target != dest and dest not in target.parents:
+                continue
+            safe_members.append(member)
+        kwargs = {"filter": "data"} if hasattr(tarfile, "data_filter") else {}
+        archive.extractall(dest, members=safe_members, **kwargs)  # nosec B202 - members validated above
 
 
 def _extract_squashfs_archive(archive_path: Path, destination: Path) -> None:

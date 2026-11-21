@@ -1,4 +1,4 @@
-# IoT Hunter v4.0 — Python 3.11+
+# IoT Hunter v4.0 — runtime dependencies (Python 3.11+)
 PyYAML>=6.0,<7.0
 psutil>=5.9,<8.0
 requests>=2.31,<3.0
@@ -8,6 +8,5 @@ manuf>=1.1,<2.0
 fastapi>=0.115,<1.0
 uvicorn[standard]>=0.30,<1.0
 apscheduler>=3.10,<4.0
-redis>=5.0,<7.0
+redis>=5.0,<7.0  # reserved for the planned queue integration
 httpx>=0.27,<1.0
-pytest>=8.0,<9.0

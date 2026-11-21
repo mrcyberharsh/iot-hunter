@@ -407,4 +407,25 @@ def report_pdf(scan_id: str):
              Paragraph("Scan Summary", styles["Heading2"]),
              Paragraph(f"Discovered devices: {len(results)}", styles["Normal"]),
              Paragraph("Device Inventory & Open Ports", styles["Heading2"])]
-    rows =
+    rows = [["IP", "Ports", "Device Type", "Hostname"]]
+
+for item in results:
+    rows.append([
+        str(item.get("ip", "")),
+        ", ".join(str(port) for port in item.get("open_ports", [])),
+        str(item.get("device_type", "")),
+        str(item.get("hostname", "")),
+    ])
+
+table = Table(rows)
+story.append(table)
+
+doc = SimpleDocTemplate(path, pagesize=A4)
+doc.build(story)
+
+return FileResponse(
+    path,
+    filename=f"iot-hunter-{scan_id}.pdf",
+    media_type="application/pdf",
+    background=BackgroundTask(lambda: os.unlink(path)),
+)

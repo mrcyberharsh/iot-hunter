@@ -1,0 +1,99 @@
+IoT Hunter
+Copyright (C) 2026 MR Cyber Pulse
+
+This project is dual-licensed. You may choose either license below.
+
+======================================================================
+Option 1: GNU Affero General Public License v3.0 (AGPL-3.0)
+======================================================================
+
+IoT Hunter is free software: you can redistribute it and/or modify it
+under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+IoT Hunter is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public
+License along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+AGPL-3.0 ADDITIONAL TERMS FOR THIS PROJECT:
+
+1. Network Interaction (Section 13)
+   If you modify IoT Hunter and interact with it remotely through a
+   computer network, you must provide to all users of the network
+   access to the Corresponding Source of the software being executed
+   on the server, including modifications.
+
+2. Trademark
+   The name "IoT Hunter" and "MR Cyber Pulse" are trademarks of
+   MR Cyber Pulse. You may not use these names in marketing without
+   written permission.
+
+3. Attribution
+   You must retain all copyright notices, this license text, and
+   the NOTICE file (if present) in any derivative work.
+
+4. No Warranty
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+   OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+   OTHER DEALINGS IN THE SOFTWARE.
+
+======================================================================
+Option 2: Commercial License
+======================================================================
+
+A Commercial License is required if you wish to:
+
+  a) Use IoT Hunter in a proprietary or closed-source product
+  b) Integrate IoT Hunter into customer-facing products or
+     internal commercial platforms
+  c) Distribute IoT Hunter without AGPL source-sharing obligations
+  d) Deploy IoT Hunter as a SaaS / multi-tenant service without
+     providing source code to end users (waiver of AGPL Section 13)
+  e) Deploy proprietary modifications or derivative applications
+  f) Use IoT Hunter under custom enterprise terms, SLA, or support
+
+A Commercial License grants a non-exclusive, non-transferable right
+to use IoT Hunter under the terms specified in the signed agreement.
+It does NOT grant redistribution rights unless explicitly stated.
+
+======================================================================
+Commercial License Request
+======================================================================
+
+To request a Commercial License, contact:
+
+  Primary:   manager.prachi@zohomail.in
+  CC:        cyber.h4rsh@zohomail.in
+
+Include in your request:
+
+  1. Company name and authorized contact person
+  2. Intended use case and deployment model (on-prem / SaaS / embedded)
+  3. Number of products, installations, or expected users
+  4. Whether source-code redistribution is involved
+  5. Required support level, SLA, or modification scope
+  6. Territory (if limited)
+
+All commercial use requires a signed written agreement. Terms,
+pricing, scope, warranties, and liability are defined in that
+agreement. Access to this repository does NOT constitute a
+commercial license.
+
+======================================================================
+Copyright
+======================================================================
+
+Copyright (C) 2026 MR Cyber Pulse. All rights reserved.
+
+The AGPL-3.0 license text is available at:
+https://www.gnu.org/licenses/agpl-3.0.html   

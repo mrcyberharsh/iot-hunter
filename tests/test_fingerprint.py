@@ -6,7 +6,9 @@ from modules.fingerprint import classify_device, parse_banner_service
 class FingerprintTests(unittest.TestCase):
     def test_parse_banner_service_known_services(self):
         cases = [
-            ("SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.6", ("ssh", "2.0")),
+            ("SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.6", ("ssh", "8.9p1")),
+            ("SSH-2.0-dropbear_2022.83", ("ssh", "2022.83")),
+            ("SSH-2.0-CustomSSH", ("ssh", "2.0")),
             ("Server: Apache/2.4.54 (Unix)", ("apache", "2.4.54")),
             ("nginx/1.24.0", ("nginx", "1.24.0")),
             ("Mosquitto MQTT broker v2.0.15", ("mqtt", "2.0.15")),

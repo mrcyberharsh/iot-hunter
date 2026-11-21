@@ -63,7 +63,7 @@ def parse_banner_service(banner):
                 )
                 version = version_match.group(1) if version_match else None
 
-                                if service == "ssh":
+                if service == "ssh":
                     # "SSH-2.0-OpenSSH_8.9p1" -> 2.0 is the protocol version; the
                     # software version (8.9p1) is what matters for CVE lookups.
                     ssh_match = re.search(r"(?:OpenSSH|dropbear|libssh)[_\s-]+v?([0-9]+(?:\.[0-9]+)*(?:p[0-9]+)?)", text, re.I)

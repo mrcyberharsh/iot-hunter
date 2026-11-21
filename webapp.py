@@ -6,6 +6,7 @@ Only private IPv4 ranges up to /24 are accepted by this service.
 from __future__ import annotations
 
 import concurrent.futures
+import contextlib
 import hashlib
 import ipaddress
 import json
@@ -23,7 +24,8 @@ from typing import Any
 import yaml
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -39,13 +41,26 @@ CONFIG = yaml.safe_load(CONFIG_PATH.read_text()) if CONFIG_PATH.exists() else {}
 SCAN_CFG = CONFIG.get("scan", {})
 ALLOWED_PORTS = {21, 22, 23, 53, 80, 139, 443, 445, 1883, 8883, 8080, 8443}
 
-app = FastAPI(title="IoT Hunter API", version="4.0.0",
+@contextlib.asynccontextmanager
+async def lifespan(_app: FastAPI):
+    startup()
+    try:
+        yield
+    finally:
+        shutdown()
+
+
+app = FastAPI(title="IoT Hunter API", version="4.0.0", lifespan=lifespan,
               description="Defensive IoT inventory for explicitly authorized private networks.")
 scheduler = BackgroundScheduler(timezone="UTC")
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 jobs: dict[str, dict[str, Any]] = {}
 jobs_lock = threading.Lock()
-rate_state: dict[str, list[float]] = {}
+auth_failures: dict[str, list[float]] = {}
+auth_lock = threading.Lock()
+AUTH_MAX_FAILURES = 5
+AUTH_WINDOW_SEC = 300
+MAX_TRACKED_JOBS = 200
 schedule_jobs: dict[str, dict[str, Any]] = {}
 
 
@@ -179,7 +194,7 @@ def scan_worker(job_id: str, subnets: list[str], ports: list[int], timeout: floa
         with db() as conn:
             placeholders = ",".join("?" for _ in subnets)
             previous = {r["ip"]: dict(r) for r in conn.execute(
-                f"SELECT * FROM devices WHERE subnet IN ({placeholders})", tuple(subnets)
+                f"SELECT * FROM devices WHERE subnet IN ({placeholders})", tuple(subnets)  # nosec B608 - only '?' placeholders are interpolated
             )}
             current_ips = set()
             for item in enriched:
@@ -199,7 +214,7 @@ def scan_worker(job_id: str, subnets: list[str], ports: list[int], timeout: floa
                     record_alert("device_changed", f"Device ports changed: {ip}", item)
             for ip, old in previous.items():
                 if ip not in current_ips:
-                    conn.execute("UPDATE devices SET online=0 WHERE ip=? AND subnet IN (" + placeholders + ")", (ip, *subnets))
+                    conn.execute("UPDATE devices SET online=0 WHERE ip=? AND subnet IN (" + placeholders + ")", (ip, *subnets))  # nosec B608 - only '?' placeholders are interpolated
                     if old["online"]:
                         record_alert("device_offline", f"Device went offline: {ip}", {"ip": ip})
             conn.execute("INSERT OR REPLACE INTO scans(id,created_at,subnet,status,results) VALUES(?,?,?,?,?)",
@@ -216,6 +231,10 @@ def launch_scan(subnet: str, ports: list[int], timeout: float = 3) -> str:
     checked_ports = validate_ports(ports)
     job_id = uuid.uuid4().hex
     with jobs_lock:
+        # Finished jobs are persisted in SQLite, so cap the in-memory copies.
+        finished = [k for k, v in jobs.items() if v.get("status") in ("completed", "failed")]
+        for old_id in finished[:max(0, len(jobs) - MAX_TRACKED_JOBS)]:
+            jobs.pop(old_id, None)
         jobs[job_id] = {"id": job_id, "status": "queued", "progress": 0,
                         "completed_subnets": 0, "total_subnets": len(nets),
                         "results": [], "created_at": datetime.now(timezone.utc).isoformat()}
@@ -259,7 +278,6 @@ async def protect_dashboard_api(request: Request, call_next):
         try:
             validate_bearer_token(request.headers.get("authorization"))
         except HTTPException as exc:
-            from fastapi.responses import JSONResponse
             return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
     return await call_next(request)
 
@@ -389,75 +407,4 @@ def report_pdf(scan_id: str):
              Paragraph("Scan Summary", styles["Heading2"]),
              Paragraph(f"Discovered devices: {len(results)}", styles["Normal"]),
              Paragraph("Device Inventory & Open Ports", styles["Heading2"])]
-    rows = [["IP", "Vendor", "Type", "Open ports"]]
-    rows += [[d.get("ip", ""), d.get("vendor", ""), d.get("device_type", ""),
-              ", ".join(map(str, d.get("open_ports", [])))] for d in results]
-    table = Table(rows, repeatRows=1)
-    table.setStyle([("BACKGROUND", (0,0), (-1,0), colors.HexColor("#25203a")),
-                    ("TEXTCOLOR", (0,0), (-1,0), colors.white),
-                    ("GRID", (0,0), (-1,-1), .4, colors.grey)])
-    story += [table, Spacer(1, .4 * cm), Paragraph("CVE Findings", styles["Heading2"])]
-    for d in results:
-        for service in d.get("cves", []):
-            for cve in service.get("cves", []):
-                story.append(Paragraph(f"{d.get('ip')} — {cve.get('id')}: {cve.get('description','')[:300]}", styles["Normal"]))
-    story += [Paragraph("Compliance Status", styles["Heading2"]),
-              Paragraph("Manual review required: this report does not attempt default credentials or make unsupported CERT-In compliance claims.", styles["Normal"]),
-              Paragraph("Recommendations", styles["Heading2"]),
-              Paragraph("Review exposed services, disable unused management interfaces, update firmware using vendor advisories, and validate CVE matches against exact product/version information.", styles["Normal"])]
-    SimpleDocTemplate(str(path), pagesize=A4).build(story)
-    return FileResponse(path, media_type="application/pdf", filename=f"iot-hunter-{scan_id}.pdf")
-
-
-def create_api_token():
-    secret = os.getenv("IOT_HUNTER_ADMIN_SECRET", "")
-    return secret
-
-
-@app.post("/api/auth/token")
-def issue_token(request: Request, x_admin_secret: str | None = Header(default=None)):
-    expected = os.getenv("IOT_HUNTER_ADMIN_SECRET", "")
-    if not expected or not x_admin_secret or not secrets.compare_digest(expected, x_admin_secret):
-        raise HTTPException(401, "Valid X-Admin-Secret header required")
-    token = secrets.token_urlsafe(32)
-    digest = __import__("hashlib").sha256(token.encode()).hexdigest()
-    ttl = max(1, int(CONFIG.get("api", {}).get("token_ttl_hours", 24))) * 3600
-    created = datetime.now(timezone.utc).isoformat()
-    with db() as conn:
-        conn.execute("INSERT INTO api_tokens(token_hash,created_at,expires_at) VALUES(?,?,?)",
-                     (digest, created, time.time() + ttl))
-    return {"access_token": token, "token_type": "bearer", "expires_in": ttl}
-
-
-# Public versioned API. The local dashboard endpoints remain available on /api.
-app.get("/v1/devices", dependencies=[Depends(rate_limited_token)])(devices)
-app.post("/v1/scan", dependencies=[Depends(rate_limited_token)])(start_scan)
-app.get("/v1/scan/{scan_id}/status", dependencies=[Depends(rate_limited_token)])(scan_status)
-app.get("/v1/scan/{scan_id}/results", dependencies=[Depends(rate_limited_token)])(scan_results)
-app.get("/v1/schedule", dependencies=[Depends(rate_limited_token)])(list_schedules)
-app.post("/v1/schedule", dependencies=[Depends(rate_limited_token)])(add_schedule)
-app.delete("/v1/schedule/{schedule_id}", dependencies=[Depends(rate_limited_token)])(delete_schedule)
-app.get("/v1/report/{scan_id}/pdf", dependencies=[Depends(rate_limited_token)])(report_pdf)
-
-
-@app.on_event("startup")
-def startup():
-    scheduler.start()
-    from apscheduler.triggers.cron import CronTrigger
-    with db() as conn:
-        rows = conn.execute("SELECT * FROM schedules").fetchall()
-    for row in rows:
-        try:
-            trigger = CronTrigger.from_crontab(row["cron_expr"])
-            ports = json.loads(row["ports"])
-            scheduler.add_job(launch_scan, trigger, id=row["id"], replace_existing=True,
-                              args=[row["subnet"], ports, float(row["timeout"])])
-            schedule_jobs[row["id"]] = {"id": row["id"], "cron_expr": row["cron_expr"], "subnet": row["subnet"], "ports": ports}
-        except (ValueError, TypeError, KeyError):
-            continue
-
-
-@app.on_event("shutdown")
-def shutdown():
-    scheduler.shutdown(wait=False)
-    executor.shutdown(wait=False)
+    rows =

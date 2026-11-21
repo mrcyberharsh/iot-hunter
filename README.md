@@ -256,3 +256,54 @@ IoT Hunter is actively looking for contributors! Whether you're fixing a typo or
 
 **Not sure where to start?** Open an issue and say hi — we'll help you find something.
 
+
+
+---
+
+# IoT Hunter v4.0 — Web Dashboard (Preview)
+
+The `feature/iot-hunter-v4` branch adds a FastAPI dashboard around the existing v3.1 discovery/fingerprinting modules. The Tkinter/CLI entry points remain available; this branch does not replace or rewrite the original scanning engine.
+
+## Docker quick start
+
+1. Copy the example environment file and set a long random admin secret:
+
+   ```bash
+   cp .env.example .env
+   # Edit .env and set IOT_HUNTER_ADMIN_SECRET
+   ```
+
+2. Start the web service and Redis:
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. Open **http://localhost:8080**.
+
+Persistent SQLite data is stored in `./data`; generated reports are stored in `./reports`. Redis is included as an infrastructure dependency for the planned queue integration; current scan execution uses a bounded local thread pool.
+
+## v4 API
+
+- `GET /` — dark single-page dashboard
+- `GET /api/devices` — device inventory
+- `POST /api/scan` — start an explicitly authorized scan
+- `GET /api/scan/{id}/status` and `/results` — scan progress/results
+- `POST /api/schedule`, `GET /api/schedule`, `DELETE /api/schedule/{id}` — cron schedules
+- `POST /api/auth/token` — issue a bearer token using the `X-Admin-Secret` header
+- `/v1/*` — bearer-authenticated versioned API
+- `GET /api/report/{id}/pdf` — PDF report
+- `/docs` — generated OpenAPI documentation
+
+## Safety and current implementation notes
+
+- The web API accepts only private IPv4 subnets with at most 256 addresses per subnet, up to four subnets per job, and an explicit authorization confirmation.
+- Port checks are restricted to the allow-list enforced by the API.
+- No default-password guessing is implemented.
+- CVE results inherited from the v3.1 fingerprint module are reference leads; verify exact product and firmware versions with vendor advisories.
+- The web report labels compliance as requiring manual review. It does not claim a CERT-In certification or perform credential validation.
+- Alert configuration is currently accepted for the running process; persistent secret management and complete SMTP/webhook/Telegram delivery should be validated before production use.
+- Scheduled jobs are currently process-local and are not restored after a container restart. Redis is provisioned but not yet wired into a durable queue.
+- Run this preview only on a trusted host/network. Do not expose port 8080 directly to the public internet without TLS, hardened authentication, secret management, and an access-control layer.
+
+This branch is a feature preview, not a production security appliance. Run the tests with `python -m pytest` and review the deployment before using it with operational networks.

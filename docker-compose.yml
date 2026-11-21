@@ -1,0 +1,30 @@
+services:
+  iot-hunter:
+    build: .
+    container_name: iot-hunter
+    ports:
+      - "8080:8080"
+    environment:
+      IOT_HUNTER_DATA: /app/data
+      IOT_HUNTER_ADMIN_SECRET: ${IOT_HUNTER_ADMIN_SECRET:?Set IOT_HUNTER_ADMIN_SECRET in your environment}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+volumes:
+  redis-data:

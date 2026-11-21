@@ -39,17 +39,23 @@ def parse_banner_service(banner):
         return "unknown", None
     text = banner.strip()
     patterns = [
-        ("apache", ["apache"]), ("nginx", ["nginx"]), ("ssh", ["ssh"]),
-        ("telnet", ["telnet"]), ("mqtt", ["mqtt"]), ("http", ["http"]),
-        ("ftp", ["ftp"]), ("smtp", ["smtp"]), ("mysql", ["mysql"]),
-        ("redis", ["redis"]), ("postgresql", ["postgres", "postgresql"]),
-        ("mongodb", ["mongodb"]),
+        ("apache", r"apache[\\s/:_-]*v?([0-9]+(?:\\.[0-9]+){0,3})", [r"apache"]),
+        ("nginx", r"nginx[\\s/:_-]*v?([0-9]+(?:\\.[0-9]+){0,3})", [r"nginx"]),
+        ("ssh", r"(?:^|\\b)ssh[-_/ ]*([0-9]+(?:\\.[0-9]+){0,3})", [r"ssh"]),
+        ("telnet", r"telnet", [r"telnet"]),
+        ("mqtt", r"mqtt(?:[^0-9]*)([0-9]+(?:\\.[0-9]+){0,3})", [r"mqtt"]),
+        ("http", r"http", [r"http"]),
+        ("ftp", r"ftp", [r"ftp"]),
+        ("smtp", r"smtp", [r"smtp"]),
+        ("mysql", r"mysql", [r"mysql"]),
+        ("redis", r"redis", [r"redis"]),
+        ("postgresql", r"postgresql(?:[\\s/:_-]*)([0-9]+(?:\\.[0-9]+){0,3})", [r"postgresql", r"postgres"]),
+        ("mongodb", r"mongodb", [r"mongodb"]),
     ]
-    for service, keywords in patterns:
-        for keyword in keywords:
-            if keyword in text.lower():
-                match = re.search(rf"{re.escape(keyword)}[ /:-]*v?([0-9]+(?:\.[0-9]+){{0,3}})", text, re.I)
-                return service, match.group(1) if match else None
+    for service, version_pattern, keywords in patterns:
+        if any(re.search(keyword, text, re.I) for keyword in keywords):
+            match = re.search(version_pattern, text, re.I)
+            return service, match.group(1) if match else None
     return "unknown", None
 
 

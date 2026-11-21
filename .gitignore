@@ -7,3 +7,8 @@ logs/
 reports/
 data/inventory-history.json
 data/inventory-history.json.tmp
+data/*.db
+data/*.db-journal
+data/*.sqlite3
+iot-hunter-report-*.pdf
+.pytest_cache/

@@ -4,7 +4,7 @@
 
 <br />
 
-# 🛡️ IoT Hunter
+#  IoT Hunter
 
 **Next-Gen Defensive IoT Security & Network Reconnaissance Toolkit**
 
@@ -21,23 +21,23 @@
 
 ---
 
-> **⚠️ Security Notice:** IoT Hunter is strictly a **defensive auditing tool** for networks you own or have explicit written authorization to assess. Findings represent *leads for review*, not proof of exploitability.
+> ** Security Notice:** IoT Hunter is strictly a **defensive auditing tool** for networks you own or have explicit written authorization to assess. Findings represent *leads for review*, not proof of exploitability.
 
 ## ⚡ Core Capabilities
 
 | Module | Capability | Description |
 | :--- | :--- | :--- |
-| 🔍 **Discovery** | Active ARP & Subnet Scan | Rapidly inventories live hosts on private IPv4 segments (`/24` max). |
-| 🧬 **Fingerprinting** | Service, Banner & OUI | Identifies hardware vendors via MAC OUI and extracts service banners. |
-| 🛡️ **Vuln Lookup** | CVE Intelligence | Maps detected services and versions against known CVE advisories. |
-| 🔐 **TLS Hygiene** | Certificate & Cipher Audit | Flags expired, self-signed, or weak-cipher TLS endpoints. |
-| 📡 **Protocol Audit** | IoT Traffic Inspection | Reviews configurations across common IoT communication protocols. |
-| 📈 **Drift Tracking** | Snapshot History | Tracks new, missing, and modified devices across the last 50 scans. |
-| 📄 **Reporting** | Automated Exports | Generates clean PDF and JSON audit reports with remediation guidance. |
+|  **Discovery** | Active ARP & Subnet Scan | Rapidly inventories live hosts on private IPv4 segments (`/24` max). |
+|  **Fingerprinting** | Service, Banner & OUI | Identifies hardware vendors via MAC OUI and extracts service banners. |
+|  **Vuln Lookup** | CVE Intelligence | Maps detected services and versions against known CVE advisories. |
+|  **TLS Hygiene** | Certificate & Cipher Audit | Flags expired, self-signed, or weak-cipher TLS endpoints. |
+|  **Protocol Audit** | IoT Traffic Inspection | Reviews configurations across common IoT communication protocols. |
+|  **Drift Tracking** | Snapshot History | Tracks new, missing, and modified devices across the last 50 scans. |
+|  **Reporting** | Automated Exports | Generates clean PDF and JSON audit reports with remediation guidance. |
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Clone & Setup
 
@@ -63,7 +63,7 @@ sudo python3 iothunter.py
 </details>
 
 <details>
-<summary><b>🪟 Windows (Requires Npcap + Admin)</b></summary>
+<summary><b> Windows (Requires Npcap + Admin)</b></summary>
 <br>
 
 1. Install **Python 3.10+** (check *"Add python.exe to PATH"*).
@@ -143,7 +143,7 @@ Access the dashboard at **`http://localhost:8080`** *(OpenAPI docs at `/docs`)*.
 | `POST` | `/api/schedule` | Configure cron-based recurring scans |
 | `GET` | `/api/report/{id}/pdf` | Download generated PDF audit report |
 
-> **⚠️ v4 Preview Caveats:** Scheduled jobs are currently process-local (Redis is provisioned for upcoming queue integration). Do not expose port `8080` directly to the public internet without a TLS reverse proxy and hardened access controls.
+> ** v4 Preview Caveats:** Scheduled jobs are currently process-local (Redis is provisioned for upcoming queue integration). Do not expose port `8080` directly to the public internet without a TLS reverse proxy and hardened access controls.
 
 ---
 
@@ -169,7 +169,7 @@ iot-hunter/
 
 ---
 
-## 🛡️ Safety & Authorization
+##  Safety & Authorization
 
 IoT Hunter is engineered with strict defensive guardrails:
 - **Explicit Consent Gate:** Requires manual `YES` confirmation (or API authorization flag) before transmitting packets.

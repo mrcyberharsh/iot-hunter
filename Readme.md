@@ -10,7 +10,7 @@
 
 [![Version](https://img.shields.io/badge/Version-v3.1%20%7C%20v4.0--Preview-00E5FF?style=flat-square&logo=semver&logoColor=white)](https://github.com/mrcyberharsh/iot-hunter)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-GPLv3-2EA043?style=flat-square&logo=gnu&logoColor=white)](LICENSE)
+[![License](https://img.shields.io/badge/License-AGPL--3.0%20%7C%20Commercial-2EA043?style=flat-square&logo=gnu&logoColor=white)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/mrcyberharsh/iot-hunter?style=flat-square&logo=github&color=F59E0B)](https://github.com/mrcyberharsh/iot-hunter/stargazers)
 [![Issues](https://img.shields.io/github/issues/mrcyberharsh/iot-hunter?style=flat-square&logo=github&color=EF4444)](https://github.com/mrcyberharsh/iot-hunter/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-8B5CF6?style=flat-square&logo=git&logoColor=white)](https://github.com/mrcyberharsh/iot-hunter/pulls)
@@ -48,6 +48,8 @@ python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements-dev.txt
 PYTHONPATH=backend python -m pytest -q tests
 ```
+
+> ℹ️ **Testing note:** the suite runs under **pytest** (`tests/` contains pytest-style tests). If you previously followed docs suggesting `unittest discover`, use the command above instead.
 
 ### 2. Platform Prerequisites
 
@@ -185,7 +187,6 @@ iot-hunter/
 │   ├── gui.py            # Tkinter desktop interface
 │   ├── webapp.py         # FastAPI application
 │   ├── config.yaml       # Scanner configuration & thresholds
-│   ├── config-v4.yaml
 │   ├── requirements.txt
 │   └── modules/          # Scanner and analysis modules
 ├── frontend/
@@ -193,8 +194,7 @@ iot-hunter/
 │   └── assets/
 ├── docker/
 │   ├── Dockerfile
-│   ├── docker-compose.yml
-│   └── .dockerignore
+│   └── docker-compose.yml
 ├── tests/
 ├── requirements-dev.txt
 ├── data/                 # Local SQLite & inventory snapshots (gitignored)
@@ -220,4 +220,4 @@ Contributions, bug reports, and feature ideas are welcome! Check **[CONTRIBUTING
 
 - **Browse beginner tasks:** [`good first issue`](https://github.com/mrcyberharsh/iot-hunter/labels/good%20first%20issue)
 - **Author:** Harsh Saini · [MR Cyber Pulse](https://github.com/mrcyberharsh) (`cyber.h4rsh@zohomail.in`)
-  **License:** Dual-licensed under **AGPL-3.0** (for open source) and a **Commercial License** (for proprietary/SaaS use). SeeLICENSEandCOMMERCIAL-LICENSE.mdfor details.
+  **License:** Dual-licensed under **AGPL-3.0** (for open source) and a **Commercial License** (for proprietary/SaaS use). See [LICENSE](LICENSE) and [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) for details.

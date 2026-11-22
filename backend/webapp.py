@@ -322,8 +322,18 @@ async def protect_dashboard_api(request: Request, call_next):
         try:
             validate_bearer_token(request.headers.get("authorization"))
         except HTTPException as exc:
-            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
-    return await call_next(request)
+            response = JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+        else:
+            response = await call_next(request)
+    else:
+        response = await call_next(request)
+    if is_versioned_api:
+        # Low-risk security headers for all /api/* and /v1/* responses.
+        # (CSP is intentionally deferred to a later PR.)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.get("/", response_class=HTMLResponse)

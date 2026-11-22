@@ -2,7 +2,7 @@
 
 Thank you for your interest in improving IoT Hunter. This project is a defensive IoT security toolkit, and contributions should preserve its authorized-use, non-destructive, and defensive focus.
 
-By contributing, you agree that your contributions will be licensed under the project's **GNU GPL-3.0** license.
+By contributing, you agree that your contributions will be licensed under the project's license: **Dual-licensed under AGPL-3.0 and Commercial License** (see [LICENSE](LICENSE) and [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)).
 
 ## Scope and Ethical Boundaries
 
@@ -51,7 +51,7 @@ git remote add upstream https://github.com/mrcyberharsh/iot-hunter.git
 python -m pip install --upgrade pip
 python -m pip install -r requirements-dev.txt
 
-PYTHONPATH=backend python -m unittest discover -s tests -v
+PYTHONPATH=backend python -m pytest -q tests
 ```
 
 Create a feature branch:
@@ -85,14 +85,14 @@ Use descriptive branch names, for example:
 ## Tests
 
 - Add unit tests for new modules and bug fixes.
-- Use the existing `unittest` framework under `tests/`.
+- Use the existing pytest framework under `tests/` (pytest-style test functions; see `pytest.ini`).
 - Tests must not require live network access or real devices.
 - Mock sockets, subprocess calls, packet capture, and external services.
 - Sanitize all fixtures — no real MAC addresses, private IP inventories, credentials, or packet captures.
 - Run the full suite before opening a pull request:
 
 ```bash
-PYTHONPATH=backend python -m unittest discover -s tests -v
+PYTHONPATH=backend python -m pytest -q tests
 ```
 
 If your change affects the GUI or reporting, include a brief manual test note in the PR.
@@ -186,4 +186,4 @@ Please allow reasonable time for a fix before public disclosure. See [SECURITY.m
 
 ## License
 
-By contributing, you confirm that you have the right to submit the contribution and that it may be distributed under the project's **GNU GPL-3.0** license.
+By contributing, you confirm that you have the right to submit the contribution and that it may be distributed under the project's license: **Dual-licensed under AGPL-3.0 and Commercial License**.

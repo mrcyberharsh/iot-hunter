@@ -7,7 +7,8 @@ services:
     env_file:
       - ../.env
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${IOT_HUNTER_PORT:-8080}:8080"
+    user: "${IOT_HUNTER_UID:-10001}:${IOT_HUNTER_GID:-10001}"
     environment:
       IOT_HUNTER_DATA: /app/data
       REDIS_URL: redis://redis:6379/0

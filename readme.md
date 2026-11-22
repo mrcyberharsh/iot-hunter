@@ -133,6 +133,25 @@ Access the dashboard at **`http://localhost:8080`** *(OpenAPI docs at `/docs`)*.
 
 The compose file builds from the repository root. Persistent data and report directories are mounted from `./data` and `./reports`.
 
+### One-command Linux install
+
+**Read [`install.sh`](./install.sh) first and inspect what it does before running it.** The installer never invokes `sudo` or prints the admin secret. It binds the dashboard to `127.0.0.1`, preserves an existing `.env`, and creates `data/` and `reports/` owned by the current user.
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/mrcyberharsh/iot-hunter/main/install.sh)
+```
+
+By default it uses Docker Compose when `docker compose` is available; otherwise it creates a Python virtual environment. Choose a mode or customize the location and port explicitly:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/mrcyberharsh/iot-hunter/main/install.sh) --docker
+bash <(curl -fsSL https://raw.githubusercontent.com/mrcyberharsh/iot-hunter/main/install.sh) --venv --dir "$HOME/.local/share/iot-hunter" --port 8080
+bash <(curl -fsSL https://raw.githubusercontent.com/mrcyberharsh/iot-hunter/main/install.sh) --venv --service
+bash <(curl -fsSL https://raw.githubusercontent.com/mrcyberharsh/iot-hunter/main/install.sh) --uninstall
+```
+
+The optional systemd user service does not use `sudo`; an active user systemd manager is required. The installer prints the dashboard URL and `.env` path, never the secret itself. Use `--uninstall` to stop/remove the managed app and service while preserving `.env`, `data/`, and `reports/`. On Ubuntu 24.04+, if dependencies are missing, the script prints the exact apt command; install them yourself and rerun it.
+
 ### Local Web Dashboard
 
 ```bash

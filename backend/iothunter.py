@@ -8,10 +8,14 @@ Built by MR CYBER (Harsh Saini)
 import argparse
 import os
 import sys
+from pathlib import Path
 
 import yaml
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+BACKEND_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = BACKEND_DIR.parent
+CONFIG_PATH = Path(os.getenv("IOT_HUNTER_CONFIG", BACKEND_DIR / "config.yaml"))
+sys.path.insert(0, str(BACKEND_DIR))
 
 from modules import anomaly, discovery, fingerprint, inventory, protocol, remediation, reporting
 from modules.firmware import scan_firmware_file
@@ -36,9 +40,20 @@ def show_banner():
     print("-" * 60)
 
 
-def load_config(path="config.yaml"):
-    with open(path, "r", encoding="utf-8") as handle:
-        return yaml.safe_load(handle) or {}
+def load_config(path=None):
+    config_path = Path(path) if path else CONFIG_PATH
+    with config_path.open("r", encoding="utf-8") as handle:
+        config = yaml.safe_load(handle) or {}
+
+    for key in ("wordlist_path", "oui_db_path"):
+        value = config.get(key)
+        if value and not Path(value).is_absolute():
+            config[key] = str(BACKEND_DIR / value)
+    for key in ("report_path", "inventory_history_path", "log_path"):
+        value = config.get(key)
+        if value and not Path(value).is_absolute():
+            config[key] = str(PROJECT_DIR / value)
+    return config
 
 
 def setup_logging(config):
@@ -155,7 +170,7 @@ def main():
             )
         return
 
-    if not os.path.exists("config.yaml"):
+    if not CONFIG_PATH.exists():
         print("[!] config.yaml not found. Please create one (see config.yaml example).")
         sys.exit(1)
 

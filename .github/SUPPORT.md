@@ -6,9 +6,9 @@ Thanks for using IoT Hunter! Here's how to get help.
 
 Start with:
 
-- [README.md](README.md) — installation, usage, scan profiles, and troubleshooting notes
-- [CONTRIBUTING.md](CONTRIBUTING.md) — how to contribute code, docs, or tests
-- [SECURITY.md](SECURITY.md) — responsible-disclosure policy for vulnerabilities in the tool itself
+- [Project README](../readme.md) — installation, usage, scan profiles, and troubleshooting notes
+- [CONTRIBUTING.md](../CONTRIBUTING.md) — how to contribute code, docs, or tests
+- [SECURITY.md](../SECURITY.md) — responsible-disclosure policy for vulnerabilities in the tool itself
 
 ## Questions and Discussions
 

@@ -32,10 +32,12 @@ from pydantic import BaseModel, Field
 from modules import fingerprint
 from modules.discovery import scan_target_network
 
-ROOT = Path(__file__).resolve().parent
-DATA_DIR = Path(os.getenv("IOT_HUNTER_DATA", ROOT / "data"))
+BACKEND_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = BACKEND_DIR.parent
+FRONTEND_DIR = PROJECT_DIR / "frontend"
+DATA_DIR = Path(os.getenv("IOT_HUNTER_DATA", PROJECT_DIR / "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
-CONFIG_PATH = Path(os.getenv("IOT_HUNTER_CONFIG", ROOT / "config.yaml"))
+CONFIG_PATH = Path(os.getenv("IOT_HUNTER_CONFIG", BACKEND_DIR / "config.yaml"))
 DB_PATH = Path(os.getenv("IOT_HUNTER_DB", DATA_DIR / "iot.db"))
 CONFIG = yaml.safe_load(CONFIG_PATH.read_text()) if CONFIG_PATH.exists() else {}
 SCAN_CFG = CONFIG.get("scan", {})
@@ -52,6 +54,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="IoT Hunter API", version="4.0.0", lifespan=lifespan,
               description="Defensive IoT inventory for explicitly authorized private networks.")
+app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
 scheduler = BackgroundScheduler(timezone="UTC")
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 jobs: dict[str, dict[str, Any]] = {}
@@ -108,6 +111,45 @@ def init_db():
 
 
 init_db()
+
+
+def startup():
+    if not scheduler.running:
+        scheduler.start()
+
+    schedule_jobs.clear()
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT id,cron_expr,subnet,ports,timeout FROM schedules ORDER BY created_at"
+        ).fetchall()
+
+    from apscheduler.triggers.cron import CronTrigger
+
+    for row in rows:
+        schedule_id = row["id"]
+        try:
+            trigger = CronTrigger.from_crontab(row["cron_expr"])
+            ports = json.loads(row["ports"] or "[]")
+            scheduler.add_job(
+                launch_scan,
+                trigger,
+                id=schedule_id,
+                args=[row["subnet"], ports, float(row["timeout"])],
+                replace_existing=True,
+            )
+            schedule_jobs[schedule_id] = {
+                "id": schedule_id,
+                "cron_expr": row["cron_expr"],
+                "subnet": row["subnet"],
+                "ports": ports,
+            }
+        except (ValueError, json.JSONDecodeError):
+            continue
+
+
+def shutdown():
+    if scheduler.running:
+        scheduler.shutdown(wait=False)
 
 
 class ScanRequest(BaseModel):
@@ -274,7 +316,9 @@ def rate_limited_token(authorization: str | None = Header(default=None)):
 @app.middleware("http")
 async def protect_dashboard_api(request: Request, call_next):
     path = request.url.path
-    if path.startswith("/api/") and path != "/api/auth/token":
+    is_versioned_api = path.startswith("/api/") or path.startswith("/v1/")
+    is_auth_route = path in ("/api/auth/token", "/v1/auth/token")
+    if is_versioned_api and not is_auth_route:
         try:
             validate_bearer_token(request.headers.get("authorization"))
         except HTTPException as exc:
@@ -284,10 +328,45 @@ async def protect_dashboard_api(request: Request, call_next):
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
-    page = ROOT / "web" / "index.html"
+    page = FRONTEND_DIR / "index.html"
     if not page.exists():
         return HTMLResponse("<h1>IoT Hunter v4.0</h1><p>Dashboard asset missing.</p>", status_code=500)
     return HTMLResponse(page.read_text(encoding="utf-8"))
+
+
+@app.post("/api/auth/token")
+def issue_api_token(request: Request, x_admin_secret: str | None = Header(default=None)):
+    now = time.time()
+    configured_secret = os.getenv("IOT_HUNTER_ADMIN_SECRET")
+    if not configured_secret:
+        raise HTTPException(503, "IOT_HUNTER_ADMIN_SECRET is not configured.")
+
+    client_key = request.client.host if request.client else "unknown"
+    with auth_lock:
+        failures = [timestamp for timestamp in auth_failures.get(client_key, []) if now - timestamp < AUTH_WINDOW_SEC]
+        if len(failures) >= AUTH_MAX_FAILURES:
+            auth_failures[client_key] = failures
+            retry_after = max(1, int(AUTH_WINDOW_SEC - (now - failures[0])))
+            raise HTTPException(429, "Too many authentication failures.", headers={"Retry-After": str(retry_after)})
+
+    if not x_admin_secret or not secrets.compare_digest(x_admin_secret, configured_secret):
+        with auth_lock:
+            auth_failures.setdefault(client_key, []).append(now)
+        raise HTTPException(401, "Invalid administrator secret.")
+
+    with auth_lock:
+        auth_failures.pop(client_key, None)
+
+    token = secrets.token_urlsafe(32)
+    digest = hashlib.sha256(token.encode()).hexdigest()
+    ttl = int(CONFIG.get("api", {}).get("token_ttl_hours", 24)) * 3600
+    created_at = datetime.now(timezone.utc).isoformat()
+    with db() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO api_tokens(token_hash,created_at,expires_at) VALUES(?,?,?)",
+            (digest, created_at, now + ttl),
+        )
+    return {"access_token": token, "token_type": "bearer", "expires_in": ttl}
 
 
 @app.get("/api/devices")
@@ -375,6 +454,52 @@ def delete_schedule(schedule_id: str):
     return {"deleted": True}
 
 
+# Backward-compatible versioned API aliases.
+@app.post("/v1/auth/token")
+def issue_v1_api_token(request: Request, x_admin_secret: str | None = Header(default=None)):
+    return issue_api_token(request, x_admin_secret)
+
+
+@app.get("/v1/devices")
+def v1_devices():
+    return devices()
+
+
+@app.post("/v1/scan")
+def v1_start_scan(body: ScanRequest):
+    return start_scan(body)
+
+
+@app.get("/v1/scan/{scan_id}/status")
+def v1_scan_status(scan_id: str):
+    return scan_status(scan_id)
+
+
+@app.get("/v1/scan/{scan_id}/results")
+def v1_scan_results(scan_id: str):
+    return scan_results(scan_id)
+
+
+@app.post("/v1/alerts/config")
+def v1_set_alert_config(body: AlertConfig):
+    return set_alert_config(body)
+
+
+@app.post("/v1/schedule")
+def v1_add_schedule(body: ScheduleRequest):
+    return add_schedule(body)
+
+
+@app.get("/v1/schedule")
+def v1_list_schedules():
+    return list_schedules()
+
+
+@app.delete("/v1/schedule/{schedule_id}")
+def v1_delete_schedule(schedule_id: str):
+    return delete_schedule(schedule_id)
+
+
 @app.get("/api/report/{scan_id}/pdf")
 def report_pdf(scan_id: str):
     # Scan IDs are generated as UUID hex strings; reject any other path parameter.
@@ -408,24 +533,28 @@ def report_pdf(scan_id: str):
              Paragraph(f"Discovered devices: {len(results)}", styles["Normal"]),
              Paragraph("Device Inventory & Open Ports", styles["Heading2"])]
     rows = [["IP", "Ports", "Device Type", "Hostname"]]
+    for item in results:
+        rows.append([
+            str(item.get("ip", "")),
+            ", ".join(str(port) for port in item.get("open_ports", [])),
+            str(item.get("device_type", "")),
+            str(item.get("hostname", "")),
+        ])
 
-for item in results:
-    rows.append([
-        str(item.get("ip", "")),
-        ", ".join(str(port) for port in item.get("open_ports", [])),
-        str(item.get("device_type", "")),
-        str(item.get("hostname", "")),
-    ])
+    table = Table(rows)
+    story.append(table)
 
-table = Table(rows)
-story.append(table)
+    doc = SimpleDocTemplate(path, pagesize=A4)
+    doc.build(story)
 
-doc = SimpleDocTemplate(path, pagesize=A4)
-doc.build(story)
+    return FileResponse(
+        path,
+        filename=f"iot-hunter-{scan_id}.pdf",
+        media_type="application/pdf",
+        background=BackgroundTask(lambda: os.unlink(path)),
+    )
 
-return FileResponse(
-    path,
-    filename=f"iot-hunter-{scan_id}.pdf",
-    media_type="application/pdf",
-    background=BackgroundTask(lambda: os.unlink(path)),
-)
+
+@app.get("/v1/report/{scan_id}/pdf")
+def v1_report_pdf(scan_id: str):
+    return report_pdf(scan_id)

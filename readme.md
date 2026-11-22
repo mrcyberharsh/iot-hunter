@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="logo.png" alt="MR CYBER PULSE" width="380" />
+<img src="frontend/assets/logo.png" alt="MR CYBER PULSE" width="380" />
 
 <br />
 
@@ -45,8 +45,8 @@
 git clone https://github.com/mrcyberharsh/iot-hunter.git
 cd iot-hunter
 python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-python3 -m unittest discover -s tests -v
+python3 -m pip install -r requirements-dev.txt
+PYTHONPATH=backend python3 -m unittest discover -s tests -v
 ```
 
 ### 2. Platform Prerequisites
@@ -58,7 +58,7 @@ python3 -m unittest discover -s tests -v
 ```bash
 sudo apt update
 sudo apt install -y python3 python3-pip python3-dev python3-tk libpcap-dev
-sudo python3 iothunter.py
+sudo env PYTHONPATH=backend python3 backend/iothunter.py
 ```
 </details>
 
@@ -70,7 +70,7 @@ sudo python3 iothunter.py
 2. Install **[Npcap](https://npcap.com/#download)** with **"WinPcap API-compatible Mode"** enabled.
 3. Open **PowerShell as Administrator** and run:
 ```powershell
-python iothunter.py
+python backend/iothunter.py
 ```
 </details>
 
@@ -80,7 +80,7 @@ python iothunter.py
 
 ```bash
 brew install python libpcap
-sudo python3 iothunter.py
+sudo env PYTHONPATH=backend python3 backend/iothunter.py
 ```
 </details>
 
@@ -88,10 +88,10 @@ sudo python3 iothunter.py
 
 ```bash
 # Interactive CLI Scanner
-sudo python3 iothunter.py
+sudo env PYTHONPATH=backend python3 backend/iothunter.py
 
 # Desktop GUI (Tkinter)
-sudo python3 gui.py
+sudo python3 backend/gui.py
 ```
 
 <details>
@@ -127,9 +127,19 @@ The `feature/iot-hunter-v4` branch wraps the v3.1 scanning engine in a modern **
 ```bash
 cp .env.example .env
 # Set a strong random value for IOT_HUNTER_ADMIN_SECRET in .env
-docker compose up --build
+docker compose --env-file .env -f docker/docker-compose.yml up --build
 ```
 Access the dashboard at **`http://localhost:8080`** *(OpenAPI docs at `/docs`)*.
+
+The compose file builds from the repository root. Persistent data and report directories are mounted from `./data` and `./reports`.
+
+### Local Web Dashboard
+
+```bash
+python -m pip install -r backend/requirements.txt
+IOT_HUNTER_ADMIN_SECRET='choose-a-long-secret' PYTHONPATH=backend \
+  python -m uvicorn webapp:app --app-dir backend --host 127.0.0.1 --port 8080
+```
 
 ### 🔌 REST API Endpoints
 
@@ -143,7 +153,7 @@ Access the dashboard at **`http://localhost:8080`** *(OpenAPI docs at `/docs`)*.
 | `POST` | `/api/schedule` | Configure cron-based recurring scans |
 | `GET` | `/api/report/{id}/pdf` | Download generated PDF audit report |
 
-> ** v4 Preview Caveats:** Scheduled jobs are currently process-local (Redis is provisioned for upcoming queue integration). Do not expose port `8080` directly to the public internet without a TLS reverse proxy and hardened access controls.
+> ** v4 Preview Caveats:** Scheduled scans are persisted in SQLite and restored on startup; Redis is provisioned but not wired into the scan queue. Do not expose port `8080` directly to the public internet without a TLS reverse proxy and hardened access controls.
 
 ---
 
@@ -151,17 +161,23 @@ Access the dashboard at **`http://localhost:8080`** *(OpenAPI docs at `/docs`)*.
 
 ```text
 iot-hunter/
-├── iothunter.py          # Core CLI entry point
-├── gui.py                # Tkinter desktop interface
-├── config.yaml           # Scanner configuration & thresholds
-├── modules/
-│   ├── discovery.py      # ARP & host discovery
-│   ├── fingerprint.py    # Banner grabbing, OUI & CVE mapping
-│   ├── protocol.py       # IoT protocol checks
-│   ├── anomaly.py        # Traffic & baseline anomaly detection
-│   ├── credentials.py    # Safe configuration & hygiene checks
-│   ├── remediation.py    # Actionable hardening guidance
-│   └── reporting.py      # PDF & JSON report builder
+├── backend/
+│   ├── iothunter.py      # Core CLI entry point
+│   ├── gui.py            # Tkinter desktop interface
+│   ├── webapp.py         # FastAPI application
+│   ├── config.yaml       # Scanner configuration & thresholds
+│   ├── config-v4.yaml
+│   ├── requirements.txt
+│   └── modules/          # Scanner and analysis modules
+├── frontend/
+│   ├── index.html        # Responsive web dashboard
+│   └── assets/
+├── docker/
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   └── .dockerignore
+├── tests/
+├── requirements-dev.txt
 ├── data/                 # Local SQLite & inventory snapshots (gitignored)
 ├── reports/              # Generated audit reports
 └── logs/                 # Execution logs

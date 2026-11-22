@@ -30,7 +30,7 @@
 |  **Discovery** | Active ARP & Subnet Scan | Rapidly inventories live hosts on private IPv4 segments (`/24` max). |
 |  **Fingerprinting** | Service, Banner & OUI | Identifies hardware vendors via MAC OUI and extracts service banners. |
 |  **Vuln Lookup** | CVE Intelligence | Maps detected services and versions against known CVE advisories. |
-|  **TLS Hygiene** | Certificate & Cipher Audit | Flags expired, self-signed, or weak-cipher TLS endpoints. |
+|  **TLS Hygiene** **(Planned)**| Certificate & Cipher Audit | Flags expired, self-signed, or weak-cipher TLS endpoints. |
 |  **Protocol Audit** | IoT Traffic Inspection | Reviews configurations across common IoT communication protocols. |
 |  **Drift Tracking** | Snapshot History | Tracks new, missing, and modified devices across the last 50 scans. |
 |  **Reporting** | Automated Exports | Generates clean PDF and JSON audit reports with remediation guidance. |
@@ -46,7 +46,7 @@ git clone https://github.com/mrcyberharsh/iot-hunter.git
 cd iot-hunter
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements-dev.txt
-PYTHONPATH=backend python3 -m unittest discover -s tests -v
+PYTHONPATH=backend python -m pytest -q tests
 ```
 
 ### 2. Platform Prerequisites

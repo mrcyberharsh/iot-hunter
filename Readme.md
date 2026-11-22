@@ -220,4 +220,4 @@ Contributions, bug reports, and feature ideas are welcome! Check **[CONTRIBUTING
 
 - **Browse beginner tasks:** [`good first issue`](https://github.com/mrcyberharsh/iot-hunter/labels/good%20first%20issue)
 - **Author:** Harsh Saini · [MR Cyber Pulse](https://github.com/mrcyberharsh) (`cyber.h4rsh@zohomail.in`)
-- **License:** Distributed under the **GNU GPL-3.0** License. See [`LICENSE`](LICENSE) for details.
+  **License:** Dual-licensed under **AGPL-3.0** (for open source) and a **Commercial License** (for proprietary/SaaS use). SeeLICENSEandCOMMERCIAL-LICENSE.mdfor details.

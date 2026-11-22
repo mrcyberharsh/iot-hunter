@@ -10,6 +10,17 @@ permissions:
   contents: read
 
 jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+      - name: Lint installer
+        run: shellcheck install.sh
+
   unit-tests:
     runs-on: ubuntu-latest
     steps:
@@ -27,3 +38,44 @@ jobs:
         run: python -m pytest -q tests
       - name: Compile Python files
         run: python -m compileall -q backend tests
+
+  installer-smoke:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clean-container prerequisites
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            build-essential ca-certificates curl findutils gawk git grep libpcap-dev procps \
+            openssl python3 python3-venv tar
+      - name: Install IoT Hunter in venv mode
+        run: |
+          bash ./install.sh --venv --dir "$RUNNER_TEMP/iot-hunter-install" --port 18080
+      - name: Verify dashboard and API authentication
+        run: |
+          set -euo pipefail
+          install_dir="$RUNNER_TEMP/iot-hunter-install"
+          admin_secret="$(awk -F= '$1 == "IOT_HUNTER_ADMIN_SECRET" { sub(/^[^=]*=/, ""); print; exit }' "$install_dir/.env")"
+          [[ ${#admin_secret} -eq 48 && "$admin_secret" =~ ^[[:xdigit:]]{48}$ ]]
+          [[ "$(stat -c '%a' "$install_dir/.env")" == "600" ]]
+          [[ "$(stat -c '%u:%g' "$install_dir/data")" == "$(id -u):$(id -g)" ]]
+          [[ "$(stat -c '%u:%g' "$install_dir/reports")" == "$(id -u):$(id -g)" ]]
+
+          dashboard_status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/)"
+          test "$dashboard_status" = "200"
+
+          unauthorized_status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/api/devices)"
+          test "$unauthorized_status" = "401"
+
+          api_token="$(curl --fail --silent --show-error \
+            -X POST http://127.0.0.1:18080/api/auth/token \
+            -H "X-Admin-Secret: $admin_secret" | python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])')"
+          authorized_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            -H "Authorization: Bearer $api_token" http://127.0.0.1:18080/api/devices)"
+          test "$authorized_status" = "200"
+
+          printf 'Dashboard: %s; API without token: %s; API with token: %s\n' \
+            "$dashboard_status" "$unauthorized_status" "$authorized_status"

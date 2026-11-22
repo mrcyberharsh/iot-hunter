@@ -55,6 +55,7 @@ jobs:
         run: |
           bash ./install.sh --venv --dir "$RUNNER_TEMP/iot-hunter-install" --port 18080
       - name: Verify dashboard and API authentication
+        shell: bash
         run: |
           set -euo pipefail
           install_dir="$RUNNER_TEMP/iot-hunter-install"

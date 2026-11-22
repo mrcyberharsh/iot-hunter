@@ -18,10 +18,12 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: requirements-dev.txt
+          cache-dependency-path: |
+            requirements-dev.txt
+            backend/requirements.txt
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
       - name: Run tests
         run: python -m pytest -q tests
       - name: Compile Python files
-        run: python -m compileall -q iothunter.py iot_hunter.py gui.py webapp.py modules tests
+        run: python -m compileall -q backend tests

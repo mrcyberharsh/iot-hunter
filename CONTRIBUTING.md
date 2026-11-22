@@ -49,9 +49,9 @@ cd iot-hunter
 git remote add upstream https://github.com/mrcyberharsh/iot-hunter.git
 
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 
-python -m unittest discover -s tests -v
+PYTHONPATH=backend python -m unittest discover -s tests -v
 ```
 
 Create a feature branch:
@@ -72,8 +72,8 @@ Use descriptive branch names, for example:
 - Follow PEP 8 where practical.
 - Prefer clear, small functions and explicit error handling.
 - Use the existing `logging` patterns instead of `print()` for runtime output.
-- Add new configuration options to `config.yaml` with safe defaults.
-- Keep modules under `modules/` and follow the existing module interface patterns.
+- Add new configuration options to `backend/config.yaml` with safe defaults.
+- Keep scanner modules under `backend/modules/` and follow the existing module interface patterns.
 - Do not hardcode credentials, API keys, private IPs, or device-specific secrets.
 - Preserve existing safeguards:
   - Authorization confirmation in the desktop scanner
@@ -92,7 +92,7 @@ Use descriptive branch names, for example:
 - Run the full suite before opening a pull request:
 
 ```bash
-python -m unittest discover -s tests -v
+PYTHONPATH=backend python -m unittest discover -s tests -v
 ```
 
 If your change affects the GUI or reporting, include a brief manual test note in the PR.
@@ -180,7 +180,7 @@ Please allow reasonable time for a fix before public disclosure. See [SECURITY.m
 ## Documentation
 
 - Keep README instructions accurate.
-- Document new configuration options in `config.yaml` and the README.
+- Document new configuration options in `backend/config.yaml` and the README.
 - Clearly label experimental or optional features.
 - Preserve the project's authorization and safe-operation warnings.
 

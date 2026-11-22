@@ -1,5 +1,5 @@
 .git
-.github
+**/.git
 .env
 .env.*
 !.env.example
@@ -8,10 +8,10 @@ reports/
 logs/
 tests/
 docs/
-__pycache__/
+**/__pycache__/
 *.py[cod]
-.venv/
-venv/
+**/.venv/
+**/venv/
 .pytest_cache/
 *.md
 !README.md

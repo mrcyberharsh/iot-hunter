@@ -64,3 +64,16 @@ def test_partial_scan_inventory_query_is_subnet_scoped(isolated_db):
         ).fetchall()
 
     assert [row["ip"] for row in previous] == ["192.168.1.10"]
+
+
+def test_dashboard_and_frontend_assets_serve_from_new_layout():
+    from fastapi.testclient import TestClient
+
+    with TestClient(webapp.app) as client:
+        page = client.get("/")
+        logo = client.get("/assets/logo.svg")
+
+    assert page.status_code == 200
+    assert "IoT Hunter" in page.text
+    assert logo.status_code == 200
+    assert "<svg" in logo.text

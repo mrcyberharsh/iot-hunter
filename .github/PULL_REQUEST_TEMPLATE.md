@@ -23,7 +23,7 @@
 - [ ] My code follows the project's coding guidelines
 - [ ] I have added tests that prove my fix/feature works
 - [ ] All new and existing tests pass locally
-- [ ] I have updated the documentation (README, config.yaml comments) if needed
+- [ ] I have updated the documentation (README, backend/config.yaml comments) if needed
 - [ ] My changes preserve the project's defensive, non-destructive, authorized-use scope
 - [ ] I have not included any real network inventories, credentials, or sensitive data
 

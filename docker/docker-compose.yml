@@ -1,16 +1,19 @@
 services:
   iot-hunter:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: iot-hunter
+    env_file:
+      - ../.env
     ports:
       - "127.0.0.1:8080:8080"
     environment:
       IOT_HUNTER_DATA: /app/data
-      IOT_HUNTER_ADMIN_SECRET: ${IOT_HUNTER_ADMIN_SECRET:?Set IOT_HUNTER_ADMIN_SECRET in your environment}
       REDIS_URL: redis://redis:6379/0
     volumes:
-      - ./data:/app/data
-      - ./reports:/app/reports
+      - ../data:/app/data
+      - ../reports:/app/reports
     depends_on:
       redis:
         condition: service_healthy

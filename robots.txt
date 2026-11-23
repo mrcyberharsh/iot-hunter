@@ -1,6 +1,6 @@
 # -------------------------------------------------------------------------
-# 🛡️ MR IOT HUNTER - Robots Configuration File
-# Built by MR CYBER (Harsh Saini)
+#  MR IOT HUNTER - Robots Configuration File
+# Built by MR. CYBER PULSE (Harsh Saini)
 # -------------------------------------------------------------------------
 
 # Block aggressive AI Scrapers from scraping custom security signatures

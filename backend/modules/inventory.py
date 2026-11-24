@@ -1,12 +1,36 @@
 """Local IoT asset inventory snapshots and change tracking."""
 from __future__ import annotations
+
 import json
 import os
-from datetime import datetime, timezone
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 MAX_SNAPSHOTS = 50
+
+
+def _normalize_open_ports(value: Any) -> list[int]:
+    if value is None:
+        return []
+    if isinstance(value, (str, bytes)) or not isinstance(value, Iterable):
+        raise TypeError("open_ports must be an iterable of TCP/UDP port numbers.")
+
+    ports = set()
+    for raw_port in value:
+        if isinstance(raw_port, bool):
+            raise TypeError(f"Invalid port value: {raw_port!r}")
+        if isinstance(raw_port, int):
+            port = raw_port
+        elif isinstance(raw_port, str) and raw_port.isascii() and raw_port.isdecimal():
+            port = int(raw_port)
+        else:
+            raise ValueError(f"Invalid port value: {raw_port!r}")
+        if not 1 <= port <= 65535:
+            raise ValueError(f"Port must be between 1 and 65535: {raw_port!r}")
+        ports.add(port)
+    return sorted(ports)
 
 
 def _device_key(device: dict[str, Any]) -> str:
@@ -61,11 +85,11 @@ def record_inventory(devices: list[dict[str, Any]], path: str | Path = "data/inv
             "vendor": str(device.get("vendor", "")),
             "hostname": str(device.get("hostname", "")),
             "device_type": str(device.get("device_type", "unknown")),
-            "open_ports": sorted({int(port) for port in device.get("open_ports", [])}),
+            "open_ports": _normalize_open_ports(device.get("open_ports", [])),
         })
     changes = compare_inventory(previous, safe_devices)
     snapshot = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "device_count": len(safe_devices),
         "devices": safe_devices,
     }

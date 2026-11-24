@@ -16,7 +16,7 @@
 
 ## How Has This Been Tested?
 
-<!-- Describe the tests you ran. Include commands, e.g. `python -m unittest discover -s tests -v` -->
+<!-- Describe the tests you ran. Include commands, e.g. `python -m pytest -q tests` -->
 
 ## Checklist
 

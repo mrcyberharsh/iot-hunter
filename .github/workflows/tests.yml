@@ -21,7 +21,21 @@ jobs:
       - name: Lint installer
         run: shellcheck install.sh
 
-  unit-tests:
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install analysis tools
+        run: python -m pip install ruff bandit
+      - name: Lint tests
+        run: ruff check --select E4,E7,E9,F tests
+      - name: Check medium and high severity security findings
+        run: bandit -r backend -ll
+
+  tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,9 +47,14 @@ jobs:
             requirements-dev.txt
             backend/requirements.txt
       - name: Install dependencies
-        run: python -m pip install -r requirements-dev.txt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          python -m pip install -r requirements-dev.txt
       - name: Run tests
-        run: python -m pytest -q tests
+        run: |
+          python -m pytest -q -m unit --cov=backend --cov-report=
+          python -m pytest -q -m integration --cov=backend --cov-append --cov-report=term-missing:skip-covered
       - name: Compile Python files
         run: python -m compileall -q backend tests
 

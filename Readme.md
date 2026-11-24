@@ -9,7 +9,7 @@
 **Next-Gen Defensive IoT Security & Network Reconnaissance Toolkit**
 
 [![Version](https://img.shields.io/badge/Version-v3.1%20%7C%20v4.0--Preview-00E5FF?style=flat-square&logo=semver&logoColor=white)](https://github.com/mrcyberharsh/iot-hunter)
-[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-AGPL--3.0%20%7C%20Commercial-2EA043?style=flat-square&logo=gnu&logoColor=white)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/mrcyberharsh/iot-hunter?style=flat-square&logo=github&color=F59E0B)](https://github.com/mrcyberharsh/iot-hunter/stargazers)
 [![Issues](https://img.shields.io/github/issues/mrcyberharsh/iot-hunter?style=flat-square&logo=github&color=EF4444)](https://github.com/mrcyberharsh/iot-hunter/issues)
@@ -34,6 +34,16 @@
 |  **Protocol Audit** | IoT Traffic Inspection | Reviews configurations across common IoT communication protocols. |
 |  **Drift Tracking** | Snapshot History | Tracks new, missing, and modified devices across the last 50 scans. |
 |  **Reporting** | Automated Exports | Generates clean PDF and JSON audit reports with remediation guidance. |
+
+Firmware scanning accepts input files up to 256 MiB. Tar extraction is limited to
+10,000 entries, 256 MiB per file, and 512 MiB total expanded data. Reports redact
+common credential fields and recognizable secret patterns, and local report files
+are created with owner-only permissions. Review reports before sharing because no
+automatic redaction can identify every possible secret. Optional `binwalk` and
+`unsquashfs` extraction runs in a bubblewrap sandbox with a size-limited temporary
+filesystem and live file/entry checks. Install `bubblewrap` to enable external
+extractors; when it is unavailable, external extraction is skipped with a warning
+and raw firmware string scanning remains available.
 
 ---
 
@@ -68,7 +78,7 @@ sudo env PYTHONPATH=backend python3 backend/iothunter.py
 <summary><b> Windows (Requires Npcap + Admin)</b></summary>
 <br>
 
-1. Install **Python 3.10+** (check *"Add python.exe to PATH"*).
+1. Install **Python 3.11+** (check *"Add python.exe to PATH"*).
 2. Install **[Npcap](https://npcap.com/#download)** with **"WinPcap API-compatible Mode"** enabled.
 3. Open **PowerShell as Administrator** and run:
 ```powershell
@@ -122,16 +132,16 @@ Choice: 2
 
 ## 🌐 v4.0 Web Dashboard (Preview)
 
-The `feature/iot-hunter-v4` branch wraps the v3.1 scanning engine in a modern **FastAPI dark-mode web dashboard** while keeping CLI and Tkinter modes intact.
+The v4 dashboard wraps the existing scanning engine in a **FastAPI dark-mode web dashboard** while keeping CLI and Tkinter modes intact.
 
 ### 🐳 Docker Deployment
 
 ```bash
 cp .env.example .env
-# Set a strong random value for IOT_HUNTER_ADMIN_SECRET in .env
+# Set a random value of at least 32 characters for IOT_HUNTER_ADMIN_SECRET in .env
 docker compose --env-file .env -f docker/docker-compose.yml up --build
 ```
-Access the dashboard at **`http://localhost:8080`** *(OpenAPI docs at `/docs`)*.
+Access the dashboard at **`http://127.0.0.1:8080`** *(OpenAPI docs at `/docs`)*.
 
 The compose file builds from the repository root. Persistent data and report directories are mounted from `./data` and `./reports`.
 
@@ -154,11 +164,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/mrcyberharsh/iot-hunter/main
 
 The optional systemd user service does not use `sudo`; an active user systemd manager is required. The installer prints the dashboard URL and `.env` path, never the secret itself. Use `--uninstall` to stop/remove the managed app and service while preserving `.env`, `data/`, and `reports/`. On Ubuntu 24.04+, if dependencies are missing, the script prints the exact apt command; install them yourself and rerun it.
 
+The API refuses to start unless `IOT_HUNTER_ADMIN_SECRET` is set to at least 32 characters. Use a randomly generated value, keep it private, and do not use the example placeholder.
+
 ### Local Web Dashboard
 
 ```bash
 python -m pip install -r backend/requirements.txt
-IOT_HUNTER_ADMIN_SECRET='choose-a-long-secret' PYTHONPATH=backend \
+IOT_HUNTER_ADMIN_SECRET="$(openssl rand -hex 24)" PYTHONPATH=backend \
   python -m uvicorn webapp:app --app-dir backend --host 127.0.0.1 --port 8080
 ```
 
@@ -172,9 +184,27 @@ IOT_HUNTER_ADMIN_SECRET='choose-a-long-secret' PYTHONPATH=backend \
 | `GET` | `/api/scan/{id}/status` | Poll active scan progress and state |
 | `GET` | `/api/devices` | Retrieve discovered device inventory |
 | `POST` | `/api/schedule` | Configure cron-based recurring scans |
+| `GET` | `/api/schedule` | List configured schedules and last execution status |
+| `DELETE` | `/api/schedule/{id}` | Remove a scheduled scan |
+| `POST` | `/api/alerts/config` | Apply process-local alert settings |
 | `GET` | `/api/report/{id}/pdf` | Download generated PDF audit report |
 
-> ** v4 Preview Caveats:** Scheduled scans are persisted in SQLite and restored on startup; Redis is provisioned but not wired into the scan queue. Do not expose port `8080` directly to the public internet without a TLS reverse proxy and hardened access controls.
+> **v4 Preview Caveats:** Scheduled scans are persisted in SQLite and restored on startup; the API does not expose a next-run timestamp. Scan progress is reported by completed subnet, not per host. Telegram delivery is unavailable: the alert endpoint accepts process-local configuration but does not send notifications. Redis is provisioned but not wired into the scan queue. Do not expose port `8080` directly to the public internet without a TLS reverse proxy and hardened access controls.
+
+### Verify changes
+
+Run these commands from the repository root:
+
+```bash
+python3 -m pytest -q
+PYTHONPATH=backend python3 -m unittest discover -s tests -p 'test_*.py'
+ruff check tests
+python3 -m compileall -q backend tests
+bandit -r backend -ll
+shellcheck install.sh
+```
+
+CI also runs a clean Ubuntu installer smoke test that checks the dashboard response and authenticated/unauthenticated API behavior. The local Docker build requires Docker Engine and the Compose plugin.
 
 ---
 

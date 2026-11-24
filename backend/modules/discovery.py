@@ -3,11 +3,13 @@
 import asyncio
 import ipaddress
 import logging
+import math
 import socket
 
 import psutil
 
 logger = logging.getLogger("iothunter.discovery")
+MAX_CONCURRENT_PORT_CHECKS = 32
 try:
     from scapy.all import ARP, Ether, srp
     SCAPY_OK = True
@@ -50,6 +52,19 @@ def load_oui_db(path):
     return db
 
 
+def _validate_scan_network(subnet, message):
+    network = ipaddress.ip_network(subnet, strict=False)
+    if (
+        not isinstance(network, ipaddress.IPv4Network)
+        or not network.is_private
+        or network.is_multicast
+        or network.is_loopback
+        or network.num_addresses > 256
+    ):
+        raise ValueError(message)
+    return network
+
+
 def lookup_vendor(mac, oui_db=None):
     if not mac:
         return "Unknown"
@@ -69,9 +84,10 @@ def lookup_vendor(mac, oui_db=None):
 
 def arp_scan(subnet, timeout=3):
     """Discover hosts with ARP on a local, authorized subnet."""
-    network = ipaddress.ip_network(subnet, strict=False)
-    if not isinstance(network, ipaddress.IPv4Network) or not network.is_private or network.num_addresses > 256:
-        raise ValueError("ARP discovery is limited to IPv4 networks with at most 256 addresses.")
+    network = _validate_scan_network(
+        subnet,
+        "ARP discovery is limited to private IPv4 networks with at most 256 addresses.",
+    )
     if not SCAPY_OK:
         raise RuntimeError("scapy is required for ARP scanning. Install the project requirements.")
     answered = srp(Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(pdst=str(network)),
@@ -80,28 +96,55 @@ def arp_scan(subnet, timeout=3):
 
 
 async def async_scan_port(ip, port, timeout=0.5):
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError("Port scan timeout must be greater than zero.")
     try:
-        _, writer = await asyncio.wait_for(asyncio.open_connection(ip, port), timeout=timeout)
-        writer.close()
-        await writer.wait_closed()
-        return True
+        _, writer = await asyncio.wait_for(
+            asyncio.open_connection(ip, port),
+            timeout=timeout,
+        )
     except (asyncio.TimeoutError, OSError, ValueError):
         return False
+    writer.close()
+    try:
+        await asyncio.wait_for(writer.wait_closed(), timeout=timeout)
+    except (asyncio.TimeoutError, OSError):
+        pass
+    return True
 
 
 async def async_scan_ports(ip, ports=(21, 22, 23, 80, 443, 1883, 8080), timeout=0.5):
-    checks = await asyncio.gather(*(async_scan_port(ip, port, timeout) for port in ports))
+    semaphore = asyncio.Semaphore(MAX_CONCURRENT_PORT_CHECKS)
+
+    async def bounded_scan(port):
+        async with semaphore:
+            return await async_scan_port(ip, port, timeout)
+
+    checks = await asyncio.gather(*(bounded_scan(port) for port in ports))
     return [port for port, opened in zip(ports, checks) if opened]
 
 
+def _run_async(coroutine):
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coroutine)
+    coroutine.close()
+    raise RuntimeError(
+        "Synchronous scan helpers cannot run inside an event loop; "
+        "use the corresponding async_scan_* function."
+    )
+
+
 def scan_ports(ip, ports=(21, 22, 23, 80, 443, 1883, 8080), timeout=0.5):
-    return asyncio.run(async_scan_ports(ip, ports, timeout))
+    return _run_async(async_scan_ports(ip, ports, timeout))
 
 
 async def async_scan_network(subnet, ports=(21, 22, 23, 80, 443, 1883, 8080), timeout=0.5):
-    network = ipaddress.ip_network(subnet, strict=False)
-    if not isinstance(network, ipaddress.IPv4Network) or not network.is_private or network.num_addresses > 256:
-        raise ValueError("Explicit network inventory is limited to IPv4 /24-sized ranges.")
+    network = _validate_scan_network(
+        subnet,
+        "Explicit network inventory is limited to private IPv4 ranges with at most 256 addresses.",
+    )
     results = []
     for host in network.hosts():
         host_ip = str(host)
@@ -112,7 +155,7 @@ async def async_scan_network(subnet, ports=(21, 22, 23, 80, 443, 1883, 8080), ti
 
 
 def scan_target_network(subnet, ports=(21, 22, 23, 80, 443, 1883, 8080), timeout=0.5):
-    return asyncio.run(async_scan_network(subnet, ports, timeout))
+    return _run_async(async_scan_network(subnet, ports, timeout))
 
 
 def resolve_hostname(ip):

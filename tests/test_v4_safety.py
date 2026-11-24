@@ -1,6 +1,9 @@
 import pytest
 from fastapi import HTTPException
-from webapp import validate_subnets, validate_ports
+from webapp import validate_ports, validate_subnets
+
+pytestmark = pytest.mark.unit
+
 
 def test_private_subnet_allowed():
     assert validate_subnets("192.168.10.0/24") == ["192.168.10.0/24"]

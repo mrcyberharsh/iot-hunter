@@ -4,7 +4,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from modules import discovery
+
+pytestmark = pytest.mark.unit
 
 
 class OuiLookupTests(unittest.TestCase):

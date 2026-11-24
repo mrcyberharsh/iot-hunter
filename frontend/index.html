@@ -73,6 +73,7 @@
     }
     .system-row { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; }
     .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,.35); }
+    .status-dot.unavailable { background: #fbbf24; box-shadow: none; }
     .main { margin-left: var(--sidebar); min-height: 100vh; transition: margin-left .24s ease; }
     body.sidebar-collapsed { --sidebar: 72px; }
     body.sidebar-collapsed .brand-copy, body.sidebar-collapsed .nav-label,
@@ -177,6 +178,9 @@
     }
     .status-pill.online { color: var(--green); background: rgba(52,211,153,.08); }
     .status-pill.offline { color: var(--muted); background: rgba(148,163,184,.08); }
+    .status-pill.running { color: var(--cyan); background: rgba(34,211,238,.08); }
+    .status-pill.partial { color: #fde68a; background: rgba(251,191,36,.09); }
+    .status-pill.failed { color: #fecdd3; background: rgba(251,113,133,.10); }
     .risk-pill.high { color: #fecdd3; background: rgba(251,113,133,.10); }
     .risk-pill.medium { color: #fde68a; background: rgba(251,191,36,.09); }
     .risk-pill.low { color: #cbd5e1; background: rgba(148,163,184,.08); }
@@ -190,6 +194,11 @@
     .message { min-height: 15px; margin: 10px 0 0; color: var(--muted); font-size: 10px; }
     #schedules { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 7px; }
     #schedules li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 42px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: #0a0f1a; }
+    #schedules li.schedule-state { justify-content: center; color: var(--muted); font-size: 11px; }
+    #schedules li.schedule-state.error { color: var(--rose); }
+    .schedule-meta { display: grid; gap: 4px; min-width: 0; }
+    .schedule-error { color: var(--rose); font-size: 10px; white-space: normal; overflow-wrap: anywhere; }
+    .muted { color: var(--muted); font-size: 10px; }
     #schedules button { border: 0; background: transparent; color: var(--rose); font-size: 11px; }
     .loading-row td { height: 170px; text-align: center; color: var(--muted); }
     .spinner { width: 20px; height: 20px; margin: 0 auto 8px; border: 2px solid rgba(148,163,184,.18); border-top-color: var(--cyan); border-radius: 50%; animation: spin .75s linear infinite; }
@@ -431,7 +440,7 @@
                 <label class="checkbox-row" for="authorized"><input id="authorized" type="checkbox"><span>I own these networks or have explicit authorization to assess them.</span></label>
                 <div class="scan-actions">
                   <button id="scanBtn" class="primary-button" type="button">Start scan</button>
-                  <div class="progress-track" aria-label="Scan progress"><div id="progress"></div></div>
+                  <div class="progress-track" role="progressbar" aria-label="Scan progress by completed subnet" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress"></div></div>
                 </div>
               </div>
               <p id="scanMsg" aria-live="polite"></p>
@@ -533,8 +542,8 @@
         <div class="bottom-grid">
           <section class="card" id="integrations">
             <div class="card-header"><div><h2>Alert integrations</h2><p>Telegram runtime configuration</p></div></div>
-            <div class="alert-status"><span class="status-dot"></span><span id="alertStatus">Configuration status unavailable until applied</span></div>
-            <p class="notice">Configure secrets via deployment environment or a secret manager. Never paste bot or SMTP passwords into a shared dashboard.</p>
+            <div class="alert-status"><span class="status-dot unavailable"></span><span id="alertStatus" aria-live="polite">Telegram delivery unavailable</span></div>
+            <p class="notice">Telegram delivery is not implemented by this backend. Applying settings only stores runtime configuration; it does not send notifications. Never paste bot or SMTP passwords into a shared dashboard.</p>
             <div class="form-stack">
               <div class="field"><label for="tgToken">Telegram bot token</label><input id="tgToken" type="password" autocomplete="off"></div>
               <div class="field"><label for="tgChat">Telegram chat ID</label><input id="tgChat"></div>
@@ -550,8 +559,8 @@
               <div><button id="scheduleAdd" class="secondary-button" type="button">Add schedule</button></div>
             </div>
             <p id="schedMsg" class="message"></p>
-            <ul id="schedules"></ul>
-            <p class="unavailable">Execution history and next-run timestamps are not exposed by the current schedule API. The entries below reflect persisted schedules returned by the backend.</p>
+            <ul id="schedules" aria-live="polite"><li class="schedule-state">Loading scheduled scans</li></ul>
+            <p class="unavailable">Last execution status and time are shown when available. The API does not expose a next-run timestamp.</p>
           </section>
         </div>
         <footer class="footer">IoT Hunter v4.1 · Created by Harsh Saini (MR CYBER PULSE) · Authorized networks only</footer>
@@ -582,8 +591,9 @@
 "use strict";
 const $ = id => document.getElementById(id);
 const RISKY_PORTS = {21:'FTP', 23:'Telnet', 139:'NetBIOS', 445:'SMB'};
-const TERMINAL = ['completed','failed','cancelled','canceled','error'];
-let currentJob = null, devices = [], sortKey = 'ip', sortDir = 1, loginPromise = null;
+const TERMINAL = ['completed','partial','failed','cancelled','canceled','error'];
+let currentJob = null, devices = [], sortKey = 'ip', sortDir = 1, loginPromise = null, pollTimer = null;
+let sessionRevision = 0;
 let currentPage = 1, pageSize = 10, topologyZoom = 1;
 
 /* ---------- helpers ---------- */
@@ -638,11 +648,32 @@ function ensureToken() {
   return loginPromise;
 }
 
-async function api(path, opts = {}) {
+async function api(path, opts = {}, allowAuthRetry = true) {
+  const requestRevision = sessionRevision;
   const token = await ensureToken();
   const headers = {'Authorization': 'Bearer ' + token, ...(opts.body ? {'Content-Type':'application/json'} : {}), ...(opts.headers || {})};
   const r = await fetch(path, {...opts, headers});
-  if (r.status === 401) { sessionStorage.removeItem('iotHunterToken'); throw Error('Session expired. Refresh to sign in again.'); }
+  if (requestRevision !== sessionRevision) throw Error('Sign in is required to continue.');
+  if (r.status === 401) {
+    const activeToken = sessionStorage.getItem('iotHunterToken');
+    if (activeToken && activeToken !== token) {
+      if (!allowAuthRetry) throw Error('Session changed. Retry the action.');
+      return api(path, opts, false);
+    }
+    if (requestRevision !== sessionRevision) throw Error('Sign in is required to continue.');
+    if (!allowAuthRetry) {
+      clearSessionState(false, true);
+      throw Error('Session expired. Sign in again to continue.');
+    }
+    clearSessionState(true);
+    toast('Session expired. Sign in again to continue.', 'error');
+    try { await ensureToken(); }
+    catch (e) { clearSessionState(false, true); throw e; }
+    const result = await api(path, opts, false);
+    if (path !== '/api/devices') loadDevices();
+    if (path !== '/api/schedule') loadSchedules();
+    return result;
+  }
   if (r.status === 204) return null;
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw Error(errText(j, r.statusText));
@@ -702,6 +733,7 @@ function sortValue(d, key) {
 }
 
 async function loadDevices() {
+  $('emptyMsg').classList.add('hidden');
   $('devices').innerHTML = '<tr class="loading-row"><td colspan="8"><div class="spinner"></div>Loading inventory</td></tr>';
   try {
     const ds = await api('/api/devices');
@@ -727,10 +759,10 @@ async function loadDevices() {
     renderTopology();
   } catch (e) {
     $('devices').innerHTML = `<tr class="error-row"><td colspan="8">${esc(e.message)}</td></tr>`;
+    $('emptyMsg').classList.add('hidden');
     $('cveSummary').innerHTML = '<span class="unavailable">Vulnerability summary unavailable until inventory loads.</span>';
     $('riskDeviceList').innerHTML = '<span class="unavailable">Device risk unavailable until inventory loads.</span>';
     $('topologyCanvas').innerHTML = '<div class="topology-empty">Topology unavailable</div>';
-    $('scanMsg').textContent = e.message;
   }
 }
 
@@ -763,6 +795,9 @@ function render() {
       <td><span class="risk-pill ${risk.toLowerCase()}">${risk}</span></td>
     </tr>`;
   }).join('');
+  $('emptyMsg').textContent = !devices.length
+    ? (sessionStorage.getItem('iotHunterToken') ? 'No devices discovered yet.' : 'Sign in to load device inventory.')
+    : 'No devices match the current filters.';
   $('emptyMsg').classList.toggle('hidden', filtered.length > 0);
   $('pageInfo').textContent = filtered.length ? `${start + 1}-${Math.min(start + pageSize, filtered.length)} of ${filtered.length} devices` : '0 devices';
   $('pageNumber').textContent = String(currentPage);
@@ -935,8 +970,11 @@ $('scanBtn').onclick = async () => {
     const ports = parsePorts($('ports').value);
     $('scanBtn').disabled = true;
     const j = await api('/api/scan', {method:'POST', body: JSON.stringify({subnet, ports, timeout:3, authorized:true})});
+    if (pollTimer) clearTimeout(pollTimer);
+    pollTimer = null;
     currentJob = j.id;
     $('progress').style.width = '0%';
+    document.querySelector('.progress-track').setAttribute('aria-valuenow', '0');
     $('scanMsg').textContent = 'Scan queued: ' + j.id;
     poll();
   } catch (e) { $('scanMsg').textContent = e.message; $('scanBtn').disabled = false; }
@@ -947,14 +985,28 @@ async function poll() {
   try {
     const s = await api('/api/scan/' + encodeURIComponent(currentJob) + '/status');
     const pct = Math.max(0, Math.min(100, Number(s.progress) || 0));
+    const progress = document.querySelector('.progress-track');
+    const completed = Math.max(0, Number(s.completed_subnets) || 0);
+    const total = Math.max(0, Number(s.total_subnets) || 0);
+    const errors = Array.isArray(s.errors) ? s.errors.length : 0;
+    const subnetText = total ? ` · ${Math.min(completed, total)}/${total} subnets` : '';
+    const errorText = errors ? ` · ${errors} issue(s)` : '';
     $('progress').style.width = pct + '%';
-    $('scanMsg').textContent = s.status + ' · ' + pct + '%';
+    progress.setAttribute('aria-valuenow', String(pct));
+    progress.setAttribute('aria-valuetext', `${s.status}${subnetText} · ${pct}%`);
+    $('scanMsg').textContent = `${s.status}${subnetText} · ${pct}%${errorText}`;
     if (TERMINAL.includes(s.status)) {
+      pollTimer = null;
       currentJob = null; $('scanBtn').disabled = false;
       toast('Scan ' + s.status, s.status === 'completed' ? 'ok' : 'error');
-      loadDevices();
-    } else setTimeout(poll, 1200);
-  } catch (e) { $('scanMsg').textContent = e.message; currentJob = null; $('scanBtn').disabled = false; }
+      if (s.status === 'completed' || s.status === 'partial') loadDevices();
+    } else pollTimer = setTimeout(() => { pollTimer = null; poll(); }, 1200);
+  } catch (e) {
+    pollTimer = null;
+    $('scanMsg').textContent = e.message;
+    currentJob = null;
+    $('scanBtn').disabled = false;
+  }
 }
 
 /* ---------- alerts ---------- */
@@ -965,24 +1017,57 @@ $('alertSave').onclick = async () => {
     if (chat && !/^-?\d+$|^@\w{5,}$/.test(chat)) throw Error('Chat ID must be numeric or @channelname.');
     await api('/api/alerts/config', {method:'POST', body: JSON.stringify({telegram_enabled: !!(token && chat), telegram_bot_token: token, telegram_chat_id: chat})});
     $('tgToken').value = '';
-    $('alertMsg').textContent = 'Runtime config accepted. Delivery adapters must be enabled in deployment.';
-    $('alertStatus').textContent = token && chat ? 'Telegram configuration applied for this process' : 'Telegram disabled in runtime configuration';
+    $('alertMsg').textContent = 'Runtime config accepted for this process only. Telegram messages are not sent by this backend.';
+    $('alertStatus').textContent = 'Delivery unavailable · runtime config only';
   } catch (e) { $('alertMsg').textContent = e.message; }
 };
 
 /* ---------- schedules ---------- */
+function scheduleTimestamp(value) {
+  if (!value) return 'No execution recorded';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? 'Execution time unavailable' : parsed.toLocaleString();
+}
+
+function scheduleStatusClass(status) {
+  if (status === 'completed') return 'online';
+  if (status === 'running') return 'running';
+  if (status === 'partial') return 'partial';
+  if (status === 'failed') return 'failed';
+  return 'offline';
+}
+
 async function loadSchedules() {
+  $('schedMsg').textContent = '';
+  $('schedules').innerHTML = '<li class="schedule-state">Loading scheduled scans</li>';
   try {
     const xs = await api('/api/schedule');
-    $('schedules').innerHTML = (xs || []).map(x =>
-      `<li><span><span class="mono">${esc(x.cron_expr)} · ${esc(x.subnet)}</span><br><span class="status-pill online">Configured</span></span><button data-id="${esc(x.id)}" type="button">Remove</button></li>`).join('')
-      || '<li><span>No schedules yet.</span></li>';
+    if (!Array.isArray(xs)) throw Error('The schedule API returned an invalid response.');
+    $('schedules').innerHTML = xs.length ? xs.map(x => {
+      const status = typeof x.last_status === 'string' ? x.last_status.toLowerCase() : '';
+      const label = status ? status[0].toUpperCase() + status.slice(1) : 'Not run yet';
+      const error = x.last_error
+        ? `<span class="schedule-error">Last error: ${esc(String(x.last_error).slice(0, 240))}</span>`
+        : '';
+      const lastScan = x.last_scan_id
+        ? `<span class="muted">Last scan: <span class="mono">${esc(x.last_scan_id)}</span></span>`
+        : '';
+      return `<li><span class="schedule-meta">
+        <span class="mono">${esc(x.cron_expr)} · ${esc(x.subnet)}</span>
+        <span><span class="status-pill ${scheduleStatusClass(status)}">${esc(label)}</span>
+        <span class="muted">Last run: ${esc(scheduleTimestamp(x.last_run_at))}</span></span>
+        ${error}${lastScan}</span>
+        <button data-id="${esc(x.id)}" type="button">Remove</button></li>`;
+    }).join('') : '<li class="schedule-state">No scheduled scans configured.</li>';
     document.querySelectorAll('#schedules [data-id]').forEach(b => b.onclick = async () => {
       if (!confirm('Remove this schedule?')) return;
       try { await api('/api/schedule/' + encodeURIComponent(b.dataset.id), {method:'DELETE'}); toast('Schedule removed', 'ok'); loadSchedules(); }
       catch (e) { $('schedMsg').textContent = e.message; }
     });
-  } catch (e) { $('schedMsg').textContent = e.message; }
+  } catch (e) {
+    $('schedMsg').textContent = e.message;
+    $('schedules').innerHTML = `<li class="schedule-state error">${esc(e.message)}</li>`;
+  }
 }
 
 $('scheduleAdd').onclick = async () => {
@@ -998,12 +1083,50 @@ $('scheduleAdd').onclick = async () => {
 };
 
 /* ---------- session ---------- */
-$('logoutBtn').onclick = () => {
+function clearSessionState(preserveScan = false, invalidateRequests = false) {
+  if (invalidateRequests) sessionRevision++;
   sessionStorage.removeItem('iotHunterToken');
-  devices = []; render();
-  ['deviceCount','onlineCount','cveCount','riskCount','healthOnline','healthHigh','healthMedium','healthLow'].forEach(id => $(id).textContent = '—');
-  $('schedules').innerHTML = '';
+  if (!preserveScan) {
+    currentJob = null;
+    if (pollTimer) clearTimeout(pollTimer);
+    pollTimer = null;
+    $('scanBtn').disabled = false;
+    $('progress').style.width = '0%';
+    document.querySelector('.progress-track').setAttribute('aria-valuenow', '0');
+    $('scanMsg').textContent = '';
+  } else {
+    $('scanMsg').textContent = currentJob
+      ? 'Session expired. Sign in to resume scan status.'
+      : 'Session expired. Sign in to continue.';
+  }
+  devices = [];
+  currentPage = 1;
+  render();
+  renderRisk();
+  renderTopology();
+  $('riskBars').innerHTML = '<p class="unavailable">Sign in to load risk distribution.</p>';
+  $('cveSummary').innerHTML = '<span class="unavailable">Sign in to load vulnerability data.</span>';
+  $('riskDeviceList').innerHTML = '<span class="unavailable">Sign in to load device risk.</span>';
+  $('topologyCanvas').innerHTML = '<div class="topology-empty">Sign in to load network topology.</div>';
+  $('deviceCount').textContent = '—';
+  $('onlineCount').textContent = '—';
+  $('cveCount').textContent = '—';
+  $('riskCount').textContent = '—';
+  ['healthOnline','healthHigh','healthMedium','healthLow'].forEach(id => $(id).textContent = '—');
+  ['summaryCves','summaryPorts','summaryAffected','summaryCveDevices'].forEach(id => $(id).textContent = '—');
+  $('healthRing').style.setProperty('--online-pct', '0%');
+  $('schedules').innerHTML = '<li class="schedule-state">Sign in to load scheduled scans.</li>';
+  $('schedMsg').textContent = '';
+  $('alertStatus').textContent = 'Telegram delivery unavailable';
+  $('alertMsg').textContent = '';
+  $('tgToken').value = '';
+  $('tgChat').value = '';
   $('lastUpdated').textContent = 'Not loaded';
+  closeDevice();
+}
+
+$('logoutBtn').onclick = () => {
+  clearSessionState(false, true);
   toast('Logged out');
 };
 
@@ -1018,7 +1141,7 @@ document.querySelectorAll('.sidebar .nav a').forEach(a => a.onclick = () => {
 });
 
 setInterval(() => { if ($('autoRefresh').checked && !document.hidden && sessionStorage.getItem('iotHunterToken')) loadDevices(); }, 10000);
-loadDevices().then(loadSchedules);
+Promise.all([loadDevices(), loadSchedules()]);
   </script>
 </body>
 </html>

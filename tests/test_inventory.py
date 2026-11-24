@@ -3,7 +3,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
 from modules.inventory import compare_inventory, load_snapshots, record_inventory
+
+pytestmark = pytest.mark.unit
 
 
 class InventoryTests(unittest.TestCase):
@@ -33,6 +36,23 @@ class InventoryTests(unittest.TestCase):
             snapshots = load_snapshots(path)
             self.assertEqual(result["new_devices"], 1)
             self.assertNotIn("password", str(snapshots))
+
+    def test_records_numeric_string_ports_and_rejects_malformed_values(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "inventory.json"
+            record_inventory(
+                [{"ip": "192.168.1.2", "open_ports": ["80", 443, "80"]}],
+                path,
+            )
+            snapshots = load_snapshots(path)
+            self.assertEqual(snapshots[0]["devices"][0]["open_ports"], [80, 443])
+
+            for value in ("not-a-port", True, 0, 65536, 80.5):
+                with self.subTest(value=value), self.assertRaises((TypeError, ValueError)):
+                    record_inventory(
+                        [{"ip": "192.168.1.3", "open_ports": [value]}],
+                        path,
+                    )
 
 
 if __name__ == "__main__":

@@ -375,6 +375,8 @@ elif [[ ${#admin_secret} -ge 2 && "${admin_secret:0:1}" == "'" && "${admin_secre
 fi
 [[ -n "$admin_secret" && "$admin_secret" != "replace-with-a-long-random-secret" ]] ||
     fail "IOT_HUNTER_ADMIN_SECRET is missing or still a placeholder in $ENV_FILE; update it without sharing it."
+[[ ${#admin_secret} -ge 32 ]] ||
+    fail "IOT_HUNTER_ADMIN_SECRET must contain at least 32 characters in $ENV_FILE; update it without sharing it."
 
 mkdir -p -- "$DATA_DIR" "$REPORTS_DIR" "$LOG_DIR"
 for writable_dir in "$DATA_DIR" "$REPORTS_DIR"; do

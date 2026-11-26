@@ -8,11 +8,11 @@
 
 **Next-Gen Defensive IoT Security & Network Reconnaissance Toolkit**
 
-[![Version](https://img.shields.io/badge/Version-v3.1%20%7C%20v4.0--Preview-00E5FF?style=flat-square&logo=semver&logoColor=white)](https://github.com/mrcyberharsh/iot-hunter)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-AGPL--3.0%20%7C%20Commercial-2EA043?style=flat-square&logo=gnu&logoColor=white)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/mrcyberharsh/iot-hunter?style=flat-square&logo=github&color=F59E0B)](https://github.com/mrcyberharsh/iot-hunter/stargazers)
-[![Issues](https://img.shields.io/github/issues/mrcyberharsh/iot-hunter?style=flat-square&logo=github&color=EF4444)](https://github.com/mrcyberharsh/iot-hunter/issues)
+[![Version](https://img.shields.io/badge/Version-v3.1--Preview-00E5FF?style=flat-square&logo=semver&logoColor=0A0A0A)](https://github.com/mrcyberharsh/iot-hunter)
+[![Python](https://img.shields.io/badge/Python-3.11+-3B82F6?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-3B82F6?style=flat-square&logo=gnu&logoColor=white)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/mrcyberharsh/iot-hunter?style=flat-square&logo=github&color=00E5FF)](https://github.com/mrcyberharsh/iot-hunter/stargazers)
+[![Issues](https://img.shields.io/github/issues/mrcyberharsh/iot-hunter?style=flat-square&logo=github&color=FF3B3B)](https://github.com/mrcyberharsh/iot-hunter/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-8B5CF6?style=flat-square&logo=git&logoColor=white)](https://github.com/mrcyberharsh/iot-hunter/pulls)
 
 [Features](#-core-capabilities) • [Quick Start](#-quick-start) • [v4 Web Dashboard](#-v40-web-dashboard-preview) • [Architecture](#-architecture) • [Safety](#-safety--authorization)

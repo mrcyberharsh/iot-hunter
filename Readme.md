@@ -134,6 +134,13 @@ Choice: 2
 
 The v4 dashboard wraps the existing scanning engine in a **FastAPI dark-mode web dashboard** while keeping CLI and Tkinter modes intact.
 
+The dashboard opens on a compact asset overview with inventory-backed device, vendor,
+port, and heuristic-risk summaries. Asset Discovery, Device Fingerprinting, Network
+Map, Risk Intelligence, Reports & Exports, and Scheduled Scans reuse the existing
+API-backed tools. Risk labels are local indicators, not CVSS scores. Scan history,
+historical trend charts, and alert delivery are marked **Coming Soon** because the
+current API does not provide those capabilities.
+
 ### 🐳 Docker Deployment
 
 ```bash

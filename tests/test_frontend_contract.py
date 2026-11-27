@@ -99,3 +99,44 @@ def test_frontend_represents_partial_scans_schedule_history_and_unavailable_tele
     assert "Telegram delivery is not implemented by this backend." in FRONTEND_HTML.read_text(
         encoding="utf-8"
     )
+
+
+def test_redesigned_dashboard_preserves_tools_and_labels_unavailable_history(dashboard):
+    parser, script = dashboard
+    html = FRONTEND_HTML.read_text(encoding="utf-8")
+    ids = set(parser.ids)
+
+    assert {
+        "dashboardPage",
+        "legacyPage",
+        "recentAssetsBody",
+        "globalSearch",
+        "scanBtn",
+        "devices",
+        "exportCsv",
+        "exportJson",
+        "topologyCanvas",
+        "riskBars",
+        "scheduleAdd",
+    } <= ids
+    assert 'data-page="coming" data-feature="Scan History"' in html
+    assert "Historical scan trends are not available from the current API." in html
+    assert "Telegram delivery is not implemented by this backend." in html
+    assert "Critical CVE references" not in html
+    assert "function renderDashboard(state = 'ready')" in script
+    assert "const onlineCount = devices.filter(d => d.online).length" in script
+    assert "devices.filter(d => riskLevel(d) === 'High')" in script
+
+
+def test_about_page_uses_project_logo_and_documents_verified_project_details():
+    html = FRONTEND_HTML.read_text(encoding="utf-8")
+
+    assert '<img src="/assets/logo.png" alt="IoT Hunter shield logo">' in html
+    assert 'href="/docs">API documentation</a>' in html
+    assert "Web API v4.0.0" in html
+    assert "CLI v3.1" in html
+    assert "Python 3.11+" in html
+    assert "Safe and authorized use" in html
+    assert "Firmware analysis safeguards" in html
+    assert "Telegram message delivery are not currently provided by the backend." in html
+    assert "dual-licensed under AGPL-3.0 and a commercial license" in html

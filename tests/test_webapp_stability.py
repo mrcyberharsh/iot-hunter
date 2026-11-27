@@ -107,9 +107,9 @@ def test_partial_scan_inventory_query_is_subnet_scoped(isolated_db):
 
 def test_dashboard_and_frontend_assets_serve_from_new_layout(client):
     page = client.get("/")
-    logo = client.get("/assets/logo.svg")
+    logo = client.get("/assets/logo.png")
 
     assert page.status_code == 200
     assert "IoT Hunter" in page.text
     assert logo.status_code == 200
-    assert "<svg" in logo.text
+    assert logo.content
